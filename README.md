@@ -4,7 +4,7 @@ A simple Foundry VTT tool for creating flowcharts with links of your journal ent
 ⚙️ Установка
 Модуль Simple MindMap должен быть доступен для установки через https://raw.githubusercontent.com/Lovebringer-F/simple-mindmap/refs/heads/main/module.json
 
-🚀 Как Запустить Редактор
+#🚀 Как Запустить Редактор
 Самый простой способ открыть редактор MindMap:
 
 # 🧠 Simple MindMap
