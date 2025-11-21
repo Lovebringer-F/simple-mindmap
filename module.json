@@ -1,0 +1,34 @@
+{
+  "id": "simple-mindmap",
+  "title": "Simple MindMap",
+  "description": "Простые MindMap диаграммы.",
+  "version": "1.2.0",
+  "compatibility": {
+    "minimum": "11",
+    "verified": "12",
+    "maximum": "13"
+  },
+  "authors": [
+    {
+      "name": "Lovebringer"
+    }
+  ],
+  "esmodules": [
+    "scripts/main.js"
+  ],
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json"
+    },
+    {
+      "lang": "ru",
+      "name": "Русский",
+      "path": "lang/ru.json"
+    }
+  ],
+  "styles": [],
+  "url": "",
+  "manifest": ""
+}

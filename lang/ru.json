@@ -1,0 +1,63 @@
+{
+  "SIMPLE_MINDMAP": {
+    // --- Общие и Настройки Модуля ---
+    "TITLE": "Simple MindMap",
+    "WINDOW_TITLE": "Ментальная карта",
+    "LAST_MAP_ID_SETTING": "Последняя открытая схема",
+    
+    // --- Новые ключи для настройки макроса ---
+    "SETTING_MACRO_NAME": "Создать/Обновить Макрос",
+    "SETTING_MACRO_HINT": "Нажмите, чтобы создать или обновить макрос 'Simple_MindMap' для быстрого открытия окна.",
+    "MACRO_CREATED": "Макрос 'Simple_MindMap' успешно создан.",
+    "MACRO_UPDATED": "Макрос 'Simple_MindMap' успешно обновлен.",
+    "MACRO_NOT_FOUND_ERROR": "Класс SimpleMindMapManager не найден. Убедитесь, что модуль 'simple-mindmap' активен и мир перезагружен после последних изменений.",
+
+    // --- Панель инструментов и Холст ---
+    "SELECT_MAP": "Выберите схему",
+    "NO_MAPS": "Нет схем",
+    "TOOLBAR_SELECT_MAP": "Выбрать схему",
+    "TOOLBAR_LINE_STYLE": "Стиль линий",
+    "LINE_STYLE_CURVE": "Кривая",
+    "LINE_STYLE_STRAIGHT": "Прямая",
+    "LINE_STYLE_ORTHOGONAL": "Ломаная",
+    "TOOLBAR_ADD_LINK": "Добавить ссылку на схему",
+    "TOOLBAR_NEW": "Создать новую схему",
+    "TOOLBAR_RENAME": "Переименовать схему",
+    "TOOLBAR_DELETE": "Удалить схему",
+    "CANVAS_HINT": "Перетащите сюда документы или создайте новую схему вверху.",
+    "HELP_RESET_VIEW": "Сбросить вид (центр и зум)",
+
+    // --- Текст помощи на холсте ---
+    "HELP_TEXT_1": "ЛКМ + Drag: перетаскивание узлов.",
+    "HELP_TEXT_2": "ЛКМ + Drag (фон): выделение рамкой.",
+    "HELP_TEXT_3": "СКМ/ПКМ + Drag (фон): панорамирование.",
+    "HELP_TEXT_4": "Shift + Drag (узел): создание связи.",
+    "HELP_TEXT_5": "ПКМ (узел): открыть связанный документ/схему.",
+    "HELP_TEXT_6": "Del: удалить выделенные узлы.",
+    
+    // --- Диалоги и Кнопки ---
+    "LABEL_NAME": "Название",
+    "LABEL_NEW_NAME": "Новое название",
+    "LABEL_MAP": "Схема",
+    "LABEL_TEXT": "Текст",
+    "LABEL_COLOR": "Цвет",
+    "BUTTON_CREATE": "Создать",
+    "BUTTON_SAVE": "Сохранить",
+    "BUTTON_ADD": "Добавить",
+    "BUTTON_DELETE": "Удалить",
+    "DIALOG_NEW_MAP_TITLE": "Создать новую схему",
+    "DIALOG_RENAME_MAP_TITLE": "Переименовать схему",
+    "DIALOG_DELETE_MAP_TITLE": "Удалить схему",
+    "DIALOG_ADD_LINK_TITLE": "Добавить ссылку на схему",
+    "DIALOG_CONN_EDIT_TITLE": "Редактировать связь",
+    "PLACEHOLDER_CAPTION": "Подпись к связи",
+
+    // --- Уведомления и Подтверждения ---
+    "CONFIRM_DELETE": "Вы уверены, что хотите **безвозвратно** удалить схему **{mapName}**? Это действие нельзя отменить.",
+    "NOTIFICATION_CREATE_FIRST": "Сначала создайте или выберите схему.",
+    "NOTIFICATION_UNKNOWN_DOC": "Не удалось распознать перетаскиваемый документ.",
+    "NOTIFICATION_MAP_DELETED": "Связанная схема была удалена.",
+    "NOTIFICATION_NO_OTHER_MAPS": "Нет других схем для создания ссылки.",
+    "NOTIFICATION_DOC_NOT_FOUND": "Связанный документ \"{docName}\" не найден (возможно, удален)."
+  }
+}
