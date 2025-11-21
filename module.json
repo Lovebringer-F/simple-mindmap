@@ -29,6 +29,7 @@
     }
   ],
   "styles": [],
-  "url": "",
-  "manifest": ""
+  "url": "https://github.com/Lovebringer-F/simple-mindmap",
+  "manifest": "https://github.com/Lovebringer-F/simple-mindmap/releases/download/v1.2.0/module.json",
+  "download": "https://github.com/Lovebringer-F/simple-mindmap/releases/download/v1.2.0/simple-mindmap.zip"
 }
