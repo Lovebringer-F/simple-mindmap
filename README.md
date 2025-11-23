@@ -6,6 +6,8 @@
 The Simple MindMap module can be installed using the following Manifest URL:
 `https://raw.githubusercontent.com/Lovebringer-F/simple-mindmap/refs/heads/main/module.json`
 
+![Пример работы модуля Simple Mindmap](Example.png)
+
 ## 🚀 Как Запустить Редактор
 
 1.  Зайдите в **Настройки Модулей** (Manage Modules) и найдите **Simple MindMap**.
