@@ -11,11 +11,15 @@
 "LINE_STYLE_CURVE": "Кривая",
 "LINE_STYLE_STRAIGHT": "Прямая",
 "LINE_STYLE_ORTHOGONAL": "Ломаная",
+"TOOLBAR_ADD_GROUP": "Добавить поле (группу)",
 "TOOLBAR_ADD_TEXT": "Добавить текст",
 "TOOLBAR_ADD_LINK": "Ссылка на другую карту",
 "TOOLBAR_NEW": "Новая карта",
 "TOOLBAR_RENAME": "Переименовать",
 "TOOLBAR_DELETE": "Удалить",
+"TOOLBAR_TOGGLE_VISIBILITY": "Скрыть/показать карту игрокам",
+"TOOLBAR_TOGGLE_LOCK": "Блокировка редактирования для игроков",
+"TOOLBAR_HELP": "Помощь",
 
 "HELP_RESET_VIEW": "Сбросить камеру",
 "HELP_TEXT_1": "ПКМ + Тянуть: Панорама",
@@ -24,6 +28,8 @@
 "HELP_TEXT_4": "Shift + Клик по узлу: Связь",
 "HELP_TEXT_5": "Двойной клик: Редактировать",
 "HELP_TEXT_6": "Тянуть за картинку: Вытащить на сцену",
+"HELP_TEXT_7": "Ctrl + Клик: Мультивыделение",
+"HELP_TEXT_8": "Delete: Удалить выделенное",
 
 "DIALOG_NEW_MAP_TITLE": "Создание новой карты",
 "LABEL_NAME": "Название карты",
@@ -47,8 +53,27 @@
 "LABEL_SHAPE": "Форма линии",
 "LABEL_TYPE": "Тип линии",
 "LABEL_ARROW": "Показывать стрелку",
-"LABEL_TOOLTIP": "Заметка как всплывающая подсказка",
+"LABEL_PINNED": "Закрепить (Булавка)",
+"LABEL_TOOLTIP": "Заметка как подсказка",
+"LABEL_HIDDEN": "Скрыто от игроков",
+"LABEL_ENABLE_NOTES": "Включить заметки",
+"LABEL_BG_IMAGE": "Фоновое изображение",
 "BUTTON_DELETE": "Удалить",
+
+"LABEL_NODE_NAME": "Название",
+"LABEL_NODE_BG": "Цвет фона",
+"LABEL_NODE_COMMENT": "Заметка (Текст)",
+"LABEL_NODE_LINK": "Ссылка (UUID)",
+"LABEL_TEXT_CONTENT": "Текст",
+"LABEL_TEXT_SIZE": "Размер (px)",
+"LABEL_TEXT_COLOR": "Цвет текста",
+"LABEL_TEXT_FONT": "Шрифт",
+"LABEL_OPACITY": "Прозрачность",
+
+"NOTES_GM": "Заметки Мастера",
+"NOTES_PLAYERS": "Заметки Игроков",
+"NOTE_PLACEHOLDER": "Текст заметки...",
+"BUTTON_ADD_NOTE": "Добавить",
 
 "NOTIFICATION_NO_OTHER_MAPS": "Нет других карт для создания ссылки.",
 "NOTIFICATION_CREATE_FIRST": "Сначала создайте карту.",
@@ -56,8 +81,8 @@
 "NOTIFICATION_MAP_DELETED": "Целевая карта больше не существует.",
 "NOTIFICATION_DOC_NOT_FOUND": "Документ \"{docName}\" не найден.",
 
-"LAST_MAP_ID_SETTING": "Последняя открытая карта"
-
-
+"LAST_MAP_ID_SETTING": "Последняя открытая карта",
+"MAP_HIDDEN_GM": "Эта карта в данный момент скрыта Мастером.",
+"POPOUT_WARNING": "Модуль Popout! не установлен или не активирован."
 }
 }

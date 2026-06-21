@@ -11,11 +11,15 @@
 "LINE_STYLE_CURVE": "Curve",
 "LINE_STYLE_STRAIGHT": "Straight",
 "LINE_STYLE_ORTHOGONAL": "Orthogonal",
+"TOOLBAR_ADD_GROUP": "Add Group Field",
 "TOOLBAR_ADD_TEXT": "Add Text Node",
 "TOOLBAR_ADD_LINK": "Add Link to Another Map",
 "TOOLBAR_NEW": "Create New Map",
 "TOOLBAR_RENAME": "Rename Current Map",
 "TOOLBAR_DELETE": "Delete Current Map",
+"TOOLBAR_TOGGLE_VISIBILITY": "Toggle Map Visibility for Players",
+"TOOLBAR_TOGGLE_LOCK": "Toggle Players Editing",
+"TOOLBAR_HELP": "Toggle Help",
 
 "HELP_RESET_VIEW": "Reset Camera View",
 "HELP_TEXT_1": "RMB Drag: Pan Canvas",
@@ -24,6 +28,8 @@
 "HELP_TEXT_4": "Shift + Click Node: Start Connection",
 "HELP_TEXT_5": "Double Click Node/Line/Field: Edit",
 "HELP_TEXT_6": "Drag Image: Drop to Scene (Create Token)",
+"HELP_TEXT_7": "Ctrl + Click: Select Multiple",
+"HELP_TEXT_8": "Delete: Remove Selected",
 
 "DIALOG_NEW_MAP_TITLE": "Create New Map",
 "LABEL_NAME": "Map Name",
@@ -47,8 +53,27 @@
 "LABEL_SHAPE": "Line Shape",
 "LABEL_TYPE": "Line Style",
 "LABEL_ARROW": "Show Arrow",
+"LABEL_PINNED": "Pin Position (Lock)",
 "LABEL_TOOLTIP": "Show note as tooltip",
+"LABEL_HIDDEN": "Hidden from players",
+"LABEL_ENABLE_NOTES": "Enable Notes",
+"LABEL_BG_IMAGE": "Background Image",
 "BUTTON_DELETE": "Delete",
+
+"LABEL_NODE_NAME": "Name",
+"LABEL_NODE_BG": "Background Color",
+"LABEL_NODE_COMMENT": "Comment (Text)",
+"LABEL_NODE_LINK": "Link to Object (UUID)",
+"LABEL_TEXT_CONTENT": "Text Content",
+"LABEL_TEXT_SIZE": "Font Size (px)",
+"LABEL_TEXT_COLOR": "Text Color",
+"LABEL_TEXT_FONT": "Font Family",
+"LABEL_OPACITY": "Opacity",
+
+"NOTES_GM": "GM Notes",
+"NOTES_PLAYERS": "Player Notes",
+"NOTE_PLACEHOLDER": "Note text...",
+"BUTTON_ADD_NOTE": "Add",
 
 "NOTIFICATION_NO_OTHER_MAPS": "No other maps available to link.",
 "NOTIFICATION_CREATE_FIRST": "Please create a map first.",
@@ -56,8 +81,8 @@
 "NOTIFICATION_MAP_DELETED": "Linked map does not exist anymore.",
 "NOTIFICATION_DOC_NOT_FOUND": "Document \"{docName}\" not found.",
 
-"LAST_MAP_ID_SETTING": "Last Opened Map ID"
-
-
+"LAST_MAP_ID_SETTING": "Last Opened Map ID",
+"MAP_HIDDEN_GM": "This map is currently hidden by the Game Master.",
+"POPOUT_WARNING": "Popout! module is not installed or activated."
 }
 }
