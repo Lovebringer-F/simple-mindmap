@@ -1,6 +1,7 @@
 /**
  * Simple MindMap Module
- * Features: Groups (Fields) with Auto-Magnet, Named Links, Arrow Connections, Tooltips
+ * Features: Groups (Fields) with Auto-Magnet, Named Links, Arrow Connections, Tooltips, Visibility Control
+ * (View-Only for Players)
  */
 
 const MODULE_ID = 'simple-mindmap';
@@ -12,11 +13,41 @@ const LAST_MAP_KEY = 'last_map_id';
 /* -------------------------------------------- */
 
 const MINDMAP_CSS = `
+    /* --- CSS Variables for Themes --- */
+    .theme-dark {
+        --mm-bg: #111111;
+        --mm-grid: #333333;
+        --mm-text: #eeeeee;
+        --mm-border: #555555;
+        --mm-panel-bg: rgba(30, 30, 30, 0.95);
+        --mm-panel-bg-dark: rgba(20, 20, 20, 0.95);
+        --mm-node-bg: #2b2b2b;
+        --mm-note-bg: rgba(0, 0, 0, 0.4);
+        --mm-text-muted: #888888;
+        --mm-btn-bg: #444444;
+        --mm-btn-hover: #666666;
+    }
+    .theme-light {
+        --mm-bg: #e5e5e5;
+        --mm-grid: #bcbcbc;
+        --mm-text: #111111;
+        --mm-border: #999999;
+        --mm-panel-bg: rgba(240, 240, 240, 0.95);
+        --mm-panel-bg-dark: rgba(220, 220, 220, 0.95);
+        --mm-node-bg: #fdfdfd;
+        --mm-note-bg: rgba(255, 255, 255, 0.5);
+        --mm-text-muted: #555555;
+        --mm-btn-bg: #cccccc;
+        --mm-btn-hover: #aaaaaa;
+    }
+
     /* --- Window Styles --- */
     .mindmap-window .window-content { 
         padding: 0; 
         overflow: hidden; 
-        background: #1a1a1a; 
+        background: var(--mm-bg); 
+        display: flex;
+        flex-direction: column;
     }
 
     .mm-wrapper {
@@ -29,8 +60,8 @@ const MINDMAP_CSS = `
     /* --- Toolbar --- */
     .mm-toolbar {
         flex: 0 0 36px;
-        background: #2a2a2a;
-        border-bottom: 1px solid #000;
+        background: var(--mm-panel-bg);
+        border-bottom: 1px solid var(--mm-border);
         display: flex;
         align-items: center;
         padding: 0 10px;
@@ -41,9 +72,9 @@ const MINDMAP_CSS = `
     
     .mm-toolbar select {
         height: 24px;
-        background: #111;
-        color: #eee;
-        border: 1px solid #444;
+        background: var(--mm-panel-bg-dark);
+        color: var(--mm-text);
+        border: 1px solid var(--mm-border);
         border-radius: 3px;
     }
     
@@ -51,33 +82,34 @@ const MINDMAP_CSS = `
     #mm-line-style-select { width: 100px; }
 
     .mm-toolbar-btn {
-        background: #444;
-        color: #eee;
-        border: 1px solid #222;
+        background: var(--mm-btn-bg);
+        color: var(--mm-text);
+        border: 1px solid var(--mm-border);
         border-radius: 3px;
         width: 24px; height: 24px;
         display: flex; align-items: center; justify-content: center;
         cursor: pointer;
         font-size: 12px;
     }
-    .mm-toolbar-btn:hover { background: #666; color: #fff; }
-    .mm-toolbar-btn.danger:hover { background: #993333; }
+    .mm-toolbar-btn:hover { background: var(--mm-btn-hover); color: var(--mm-text); }
+    .mm-toolbar-btn.danger { color: #ff6400; border-color: #ff6400; }
 
     /* --- Editor Canvas --- */
     .mindmap-container {
         flex: 1;
         width: 100%;
         height: 100%;
-        background-color: #111; 
+        background-color: var(--mm-bg); 
+        color: var(--mm-text);
         position: relative;
         overflow: hidden;
         cursor: grab;
         background-image: none; 
-        font-family: 'Signika', sans-serif;
+        font-family: var(--mm-font, 'Signika', sans-serif);
     }
     
     .mindmap-container.show-grid {
-        background-image: radial-gradient(#333 1px, transparent 1px);
+        background-image: radial-gradient(var(--mm-grid) 1px, transparent 1px);
         background-size: 25px 25px;
     }
 
@@ -105,22 +137,8 @@ const MINDMAP_CSS = `
         border: 2px solid; 
         border-radius: 8px;
         box-sizing: border-box;
-        transition: box-shadow 0.2s, border-radius 0.2s, background 0.2s;
+        transition: box-shadow 0.2s, border-radius 0.2s;
     }
-    
-    /* Beautiful Collapsed Group (Pill Shape) */
-    .mindmap-group.collapsed {
-        height: 40px !important;
-        border-radius: 20px !important;
-        background: var(--group-bg-color) !important;
-        border-color: var(--group-color) !important;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-    }
-    .mindmap-group.collapsed .group-resize { display: none !important; }
-    .mindmap-group.collapsed .group-handle { display: none !important; }
     
     .mindmap-group .group-header {
         position: absolute;
@@ -132,44 +150,23 @@ const MINDMAP_CSS = `
         pointer-events: auto;
         cursor: pointer;
         padding: 0 5px;
-        background: rgba(0,0,0,0.5);
+        background: var(--mm-note-bg);
         border-top-left-radius: 8px;
         border-top-right-radius: 8px;
         height: 26px;
     }
 
-    /* Collapsed Header Adjustments */
-    .mindmap-group.collapsed .group-header {
-        position: relative;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: transparent;
-        border-radius: 20px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0 15px;
-    }
-
     .mindmap-group .group-label {
         font-weight: bold;
         font-size: 16px;
-        color: #eee;
-        text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+        color: var(--mm-text);
+        text-shadow: 0 1px 3px rgba(0,0,0,0.5);
         white-space: nowrap;
-    }
-    .mindmap-group.collapsed .group-label {
-        margin: 0;
-        flex: 1;
-        text-align: center;
-        font-size: 18px;
+        padding-right: 5px;
     }
     
-    /* Toggle Buttons */
     .group-btn {
-        color: #888;
+        color: var(--mm-text-muted);
         cursor: pointer;
         font-size: 14px;
         border-radius: 50%;
@@ -177,19 +174,15 @@ const MINDMAP_CSS = `
         display: flex; align-items: center; justify-content: center;
         transition: color 0.2s;
     }
-    .group-btn:hover { color: #fff; }
+    .group-btn:hover { color: var(--mm-text); }
+    .group-btn.active { color: #ff6400; }
     
-    .mindmap-group.collapsed .group-collapse-toggle {
-        position: absolute;
-        left: 10px;
-    }
-
     .mindmap-group .group-handle {
         position: absolute;
         top: 0; left: 0;
         width: 24px; height: 24px;
-        background: rgba(0,0,0,0.5);
-        color: #fff;
+        background: var(--mm-note-bg);
+        color: var(--mm-text);
         display: flex; align-items: center; justify-content: center;
         border-bottom-right-radius: 8px;
         cursor: move;
@@ -197,13 +190,13 @@ const MINDMAP_CSS = `
         opacity: 0;
         transition: opacity 0.2s;
     }
-    .mindmap-group:not(.collapsed):hover .group-handle { opacity: 1; }
+    .mindmap-group:hover .group-handle { opacity: 1; }
 
     .mindmap-group .group-resize {
         position: absolute;
         bottom: 0; right: 0;
         width: 16px; height: 16px;
-        background: rgba(0,0,0,0.3);
+        background: var(--mm-note-bg);
         cursor: nwse-resize;
         border-top-left-radius: 8px;
         opacity: 0;
@@ -214,54 +207,80 @@ const MINDMAP_CSS = `
     /* --- Nodes (Generic) --- */
     .mindmap-node {
         position: absolute;
-        border: 1px solid #555;
+        border: 1px solid var(--mm-border);
         border-radius: 4px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.8);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.5);
         cursor: pointer;
         user-select: none;
         z-index: 10;
         display: flex;
         flex-direction: column;
         font-size: 14px;
-        transition: box-shadow 0.2s, transform 0.1s;
+        transition: box-shadow 0.2s; 
         pointer-events: auto;
-        background: #2b2b2b; 
-        color: #eee;
+        color: var(--mm-text);
         width: max-content;
         min-width: 160px;
         max-width: 260px;
         height: auto;
+        overflow: hidden;
     }
-    .mindmap-node.hidden {
-        display: none !important;
-    }
+    .mindmap-node.hidden { display: none !important; }
     .mindmap-node:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 15px rgba(0,0,0,0.9);
+        box-shadow: 0 6px 15px rgba(0,0,0,0.7);
         z-index: 105; 
-        border-color: #888;
+        border-color: var(--mm-text-muted);
     }
     .mindmap-node.selected {
-        box-shadow: 0 0 0 2px #ff6400, 0 6px 15px rgba(0,0,0,0.9);
+        box-shadow: 0 0 0 2px #ff6400, 0 6px 15px rgba(0,0,0,0.7);
         z-index: 110;
     }
 
-    /* --- Node Content Wrapper --- */
+    /* --- Node Layout & Controls --- */
+    .node-layout-wrapper {
+        display: flex;
+        align-items: stretch;
+        width: 100%;
+        min-height: 50px;
+        flex-shrink: 0;
+    }
+    
     .node-main-content {
         display: flex;
         align-items: stretch;
-        min-height: 50px;
-        width: 100%;
+        flex: 1;
         overflow: hidden;
     }
     
-    /* --- Card Node --- */
+    .node-controls {
+        display: flex;
+        flex-direction: column;
+        border-left: 1px solid var(--mm-border);
+        background: var(--mm-note-bg);
+        width: 26px;
+        flex-shrink: 0;
+    }
+    
+    .node-control-btn {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--mm-text-muted);
+        cursor: pointer;
+        transition: color 0.1s, background 0.1s;
+        font-size: 11px;
+    }
+    .node-control-btn:hover { color: var(--mm-text); background: var(--mm-note-bg); }
+    .node-control-btn.active { color: #ff6400; }
+    
+    /* --- Card Node Content --- */
     .mindmap-node.node-card .node-main-content img {
         border: none;
-        border-right: 1px solid rgba(255,255,255,0.1);
+        border-right: 1px solid var(--mm-border);
         width: 50px;
         object-fit: cover;
-        background: rgba(0,0,0,0.2);
+        background: var(--mm-note-bg);
         border-radius: 0;
         flex-shrink: 0;
         user-drag: none; 
@@ -286,15 +305,39 @@ const MINDMAP_CSS = `
         font-weight: bold;
     }
 
+    /* --- Text Node --- */
+    .mindmap-node.node-text {
+        border: 1px dashed var(--mm-border);
+        min-width: 50px;
+        width: max-content;
+        box-shadow: none;
+    }
+    .mindmap-node.node-text .node-layout-wrapper {
+        min-height: 30px;
+    }
+    .mindmap-node.node-text .node-main-content {
+        padding: 5px 10px;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+    }
+    .mindmap-node.node-text:hover {
+        border-color: var(--mm-text);
+    }
+    .mindmap-node.node-text.selected {
+        border: 1px solid #ff6400;
+    }
+
     /* --- Comment Section --- */
     .node-comment {
-        border-top: 1px solid rgba(255,255,255,0.1);
+        border-top: 1px solid var(--mm-border);
         padding: 4px 8px;
         font-size: 0.85em;
-        color: #ccc;
-        background: rgba(0,0,0,0.2);
+        color: var(--mm-text);
+        background: var(--mm-note-bg);
         word-wrap: break-word;
         white-space: normal;
+        flex-shrink: 0;
     }
     .comment-link {
         display: inline-block;
@@ -305,32 +348,8 @@ const MINDMAP_CSS = `
         cursor: pointer;
     }
     .comment-link:hover {
-        color: #fff;
+        color: var(--mm-text);
         border-bottom-style: solid;
-    }
-
-    /* --- Text Node --- */
-    .mindmap-node.node-text {
-        background: transparent;
-        border: 1px dashed rgba(255,255,255,0.2);
-        padding: 0;
-        min-width: 50px;
-        width: max-content;
-        box-shadow: none;
-    }
-    .mindmap-node.node-text .node-main-content {
-        padding: 5px 10px;
-        min-height: auto;
-        justify-content: center;
-        text-align: center;
-    }
-    .mindmap-node.node-text:hover {
-        border-color: #fff;
-        background: rgba(0,0,0,0.5);
-    }
-    .mindmap-node.node-text.selected {
-        border: 1px solid #ff6400;
-        background: rgba(0,0,0,0.3);
     }
 
     /* --- Anchor Points --- */
@@ -353,13 +372,36 @@ const MINDMAP_CSS = `
         100% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
     }
 
-    /* --- SVG Layer --- */
+    /* --- SVG Layer & Draggable Connection Endpoints --- */
     .mindmap-svg-layer {
         position: absolute;
         top: 0; left: 0; width: 100%; height: 100%;
         pointer-events: none; 
         z-index: 5;
         overflow: visible;
+    }
+
+    .conn-endpoint-svg {
+        pointer-events: auto;
+        cursor: grab;
+        transition: r 0.2s, stroke-width 0.2s;
+    }
+    .conn-endpoint-svg:hover {
+        r: 8px;
+        fill: #ff6400;
+        stroke: #ffffff;
+        stroke-width: 2px;
+    }
+    .conn-endpoint-svg:active {
+        cursor: grabbing;
+    }
+    
+    .connection-svg-path {
+        pointer-events: stroke;
+        cursor: pointer;
+    }
+    .connection-svg-path:hover {
+        stroke: rgba(255, 100, 0, 0.2);
     }
     
     /* --- Connection Handles --- */
@@ -373,51 +415,94 @@ const MINDMAP_CSS = `
     .connection-handle {
         position: absolute;
         transform: translate(-50%, -50%);
-        cursor: pointer;
         pointer-events: auto;
         display: flex;
-        justify-content: center;
+        flex-direction: column;
         align-items: center;
-        transition: all 0.2s;
-        z-index: 100; 
+        z-index: 100;
+    }
+    .connection-handle:hover {
+        z-index: 101;
     }
 
-    .connection-handle:not(.has-text) {
-        width: 14px; height: 14px;
-        background: rgba(255, 255, 255, 0.3);
-        border: 1px solid rgba(200, 200, 200, 0.8);
-        border-radius: 50%; 
+    .conn-inner {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        background: var(--mm-panel-bg);
+        border: 1px solid var(--mm-border);
+        border-radius: 4px;
+        overflow: hidden; 
+        color: var(--mm-text);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+        font-size: 12px;
+        transition: box-shadow 0.1s, border-color 0.1s;
+        width: max-content;
     }
-    .mindmap-container.show-anchors .connection-handle {
-         background: #ff6400;
-         border-color: #fff;
-         transform: translate(-50%, -50%) scale(1.2);
-    }
-    .connection-handle:not(.has-text):hover {
-        background: rgba(255, 255, 255, 0.9);
+    .connection-handle:hover .conn-inner {
         border-color: #ff6400;
         box-shadow: 0 0 5px rgba(0,0,0,0.5);
-        transform: translate(-50%, -50%) scale(1.3);
-        z-index: 101;
     }
 
-    .connection-handle.has-text {
-        background: rgba(30, 30, 30, 0.85);
-        color: #eee;
-        padding: 2px 8px;
-        border-radius: 12px;
-        border: 1px solid #555;
-        font-size: 12px;
-        white-space: nowrap;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.5);
-        min-width: 20px;
+    .conn-top-row {
+        display: flex;
+        width: 100%;
     }
-    .connection-handle.has-text:hover {
-        background: rgba(50, 50, 50, 0.95);
-        border-color: #ff6400;
-        color: #fff;
-        z-index: 101;
-        transform: translate(-50%, -50%) scale(1.05);
+
+    .conn-bottom-row {
+        display: none;
+        flex-direction: row;
+        width: 100%;
+        border-top: 1px solid var(--mm-border);
+        background: var(--mm-panel-bg-dark);
+    }
+    .connection-handle:hover .conn-bottom-row {
+        display: flex;
+    }
+
+    .conn-part-text {
+        padding: 6px 12px;
+        white-space: nowrap;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 30px;
+        cursor: pointer;
+        flex: 1;
+        font-weight: bold;
+    }
+    .conn-part-text:hover { background: var(--mm-note-bg); }
+    
+    .conn-part-btn {
+        padding: 6px 10px;
+        border-left: 1px solid var(--mm-border);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--mm-text-muted);
+        flex: 1;
+        transition: color 0.1s, background 0.1s;
+    }
+    .conn-part-btn:first-child { border-left: none; }
+    .conn-part-btn:hover { background: var(--mm-note-bg); color: var(--mm-text); }
+    .conn-part-btn.active { color: #ff6400; }
+    .conn-part-btn.disabled { opacity: 0.3; cursor: not-allowed; pointer-events: none; }
+    
+    .conn-move-handle { cursor: grab; }
+    .conn-move-handle:active { cursor: grabbing; }
+
+    .connection-handle.empty-handle .conn-inner {
+        width: 14px; height: 14px;
+        border-radius: 50%;
+        padding: 0;
+        background: var(--mm-note-bg);
+        min-width: unset;
+    }
+    .mindmap-container.show-anchors .connection-handle .conn-inner {
+         background: #ff6400;
+         border-color: #fff;
+         transform: scale(1.2);
     }
 
     .selection-lasso {
@@ -433,32 +518,98 @@ const MINDMAP_CSS = `
         position: absolute;
         bottom: 15px; left: 15px;
         z-index: 20;
-        background: rgba(30, 30, 30, 0.9);
+        background: var(--mm-panel-bg);
         backdrop-filter: blur(4px);
         padding: 10px;
         border-radius: 8px;
-        color: #eee;
-        border: 1px solid #555;
+        color: var(--mm-text);
+        border: 1px solid var(--mm-border);
         display: flex;
         flex-direction: column;
         gap: 8px;
         box-shadow: 0 5px 15px rgba(0,0,0,0.5);
         pointer-events: auto;
+        align-items: flex-start;
     }
-    .help-text { font-size: 0.8em; color: #bbb; margin-top: 5px; line-height: 1.4; }
+    .mindmap-ui-top { display: flex; gap: 5px; align-items: center; }
+    .mm-btn { background: var(--mm-btn-bg); color: var(--mm-text); border: 1px solid var(--mm-border); border-radius: 3px; width: 28px; height: 28px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .mm-btn:hover { background: var(--mm-btn-hover); }
+    
+    .help-text { display: none; font-size: 0.8em; color: var(--mm-text-muted); margin-top: 5px; line-height: 1.4; white-space: nowrap; }
+    .help-text.active { display: block; }
     .help-text b { color: #ffaa55; }
 
     .mm-dialog-content { display: flex; flex-direction: column; gap: 10px; padding: 10px; }
     .mm-dialog-row { display: flex; align-items: center; gap: 10px; }
     .mm-dialog-row label { flex: 0 0 110px; font-weight: bold; }
-    .mm-dialog-row input, .mm-dialog-row select, .mm-dialog-row textarea { flex: 1; }
+    .mm-dialog-row input:not([type="checkbox"]), .mm-dialog-row select, .mm-dialog-row textarea { flex: 1; }
     .mm-dialog-row input[type="checkbox"] { flex: 0 0 auto; width: 18px; height: 18px; }
-    .drop-zone { border: 2px dashed #555; padding: 10px; text-align: center; color: #888; margin-top: 5px; cursor: pointer; transition: border-color 0.2s; }
-    .drop-zone.drag-hover { border-color: #ff6400; color: #eee; }
+    .drop-zone { border: 2px dashed var(--mm-border); padding: 10px; text-align: center; color: var(--mm-text-muted); margin-top: 5px; cursor: pointer; transition: border-color 0.2s; }
+    .drop-zone.drag-hover { border-color: #ff6400; color: var(--mm-text); }
+
+    /* GM Hidden Visibility Style */
+    .gm-hidden-item {
+        opacity: 0.4 !important;
+        border-style: dashed !important;
+        filter: grayscale(50%);
+    }
+
+    /* --- Entity Notes --- */
+    .entity-notes {
+        background: var(--mm-note-bg); border-top: 1px solid var(--mm-border);
+        padding: 5px; font-size: 12px; cursor: default; pointer-events: auto; width: 100%; box-sizing: border-box;
+    }
+    .notes-section-title { font-weight: bold; color: var(--mm-text-muted); margin-top: 3px; font-size: 11px; text-transform: uppercase; border-bottom: 1px solid var(--mm-border); padding-bottom: 2px; margin-bottom: 3px; flex-shrink: 0; }
+    .note-item { padding: 2px 0; border-bottom: 1px dotted var(--mm-border); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 5px; color: var(--mm-text); }
+    .note-item span { flex: 1; word-break: break-word; white-space: normal; color: var(--mm-text); }
+    .note-item small { color: var(--mm-text-muted); font-style: italic; white-space: nowrap; }
+    .delete-note { color: #ff6400; cursor: pointer; opacity: 0.5; margin-left: 5px; }
+    .delete-note:hover { opacity: 1; }
+    .note-input-row { display: flex; gap: 5px; margin-top: 5px; align-items: center; flex-shrink: 0; }
+    .new-note-input { flex: 1; background: var(--mm-panel-bg-dark); border: 1px solid var(--mm-border); color: var(--mm-text); padding: 4px 6px; font-size: 13px; height: 26px; border-radius: 3px; box-sizing: border-box; }
+    .add-note-btn { background: var(--mm-btn-bg); border: 1px solid var(--mm-border); color: var(--mm-text); width: 26px; height: 26px; display: flex; justify-content: center; align-items: center; cursor: pointer; border-radius: 3px; box-sizing: border-box; padding: 0; }
+    .add-note-btn:hover { background: var(--mm-btn-hover); }
+    
+    .group-notes-container {
+        position: absolute; bottom: 20px; left: 5px; right: 5px;
+        max-height: calc(100% - 40px); overflow-y: auto; pointer-events: auto;
+    }
+
+    .connection-notes-wrapper {
+        position: absolute;
+        top: calc(100% + 5px);
+        left: 50%;
+        transform: translateX(-50%);
+        width: 220px;
+        z-index: 102;
+        cursor: default;
+    }
+
+    /* Рамка и фон для заметок связей */
+    .connection-notes-wrapper .entity-notes {
+        border: 1px solid var(--mm-border);
+        border-radius: 6px;
+        background: var(--mm-panel-bg);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    }
+
+    /* --- Resize Handle for Nodes --- */
+    .mindmap-node .node-resize {
+        position: absolute;
+        bottom: 0; right: 0;
+        width: 14px; height: 14px;
+        cursor: nwse-resize;
+        opacity: 0;
+        transition: opacity 0.2s;
+        background: linear-gradient(135deg, transparent 50%, var(--mm-text-muted) 50%);
+        border-bottom-right-radius: 4px;
+        z-index: 20;
+    }
+    .mindmap-node:hover .node-resize { opacity: 1; }
 `;
 
 /* -------------------------------------------- */
-/* 1. Data Storage                             */
+/* 1. Data Storage & Settings                  */
 /* -------------------------------------------- */
 
 class MindMapData {
@@ -468,21 +619,25 @@ class MindMapData {
     }
     
     static async saveMaps(data) { 
-        await game.settings.set(MODULE_ID, SETTING_KEY, foundry.utils.deepClone(data)); 
+        if (game.user.isGM) {
+            await game.settings.set(MODULE_ID, SETTING_KEY, foundry.utils.deepClone(data)); 
+        }
     }
 
     static getLastMapId() { return game.settings.get(MODULE_ID, LAST_MAP_KEY); }
     static async setLastMapId(id) { await game.settings.set(MODULE_ID, LAST_MAP_KEY, id); }
 
     static async createMap(name) {
+        if (!game.user.isGM) return null; 
         const maps = this.getMaps();
         const id = foundry.utils.randomID();
-        maps[id] = { id, name, nodes: [], connections: [], groups: [] };
+        maps[id] = { id, name, nodes: [], connections: [], groups: [], hidden: false, defaultView: { x: 0, y: 0, zoom: 1 } };
         await this.saveMaps(maps);
         return id;
     }
 
     static async deleteMap(id) {
+        if (!game.user.isGM) return;
         const maps = this.getMaps();
         if (maps[id]) {
             delete maps[id];
@@ -495,6 +650,7 @@ class MindMapData {
     }
 
     static async updateMap(id, mapData) {
+        if (!game.user.isGM) return;
         const maps = this.getMaps();
         if (!id || !mapData) return;
         maps[id] = mapData;
@@ -511,10 +667,15 @@ class MindMapEditor extends Application {
         super(options);
         this.mapId = mapId;
         
+        this.zoom = 1;
+        this.pan = { x: 0, y: 0 };
+        
         if (options.mapData) {
             this.mapData = options.mapData;
+            this._applyDefaultView();
         } else {
             this._loadMapData();
+            this._applyDefaultView();
         }
         
         this.draggingNodes = new Set(); 
@@ -529,10 +690,14 @@ class MindMapEditor extends Application {
         this.groupResizeStart = { w: 0, h: 0, x: 0, y: 0 };
         this.draggingGroupNodes = []; 
 
+        this.resizingNode = null;
+        this.nodeResizeStart = { w: 0, h: 0, x: 0, y: 0 };
+        
+        this.draggingConnection = null;
+        this.reconnecting = null;
+
         this.defaultLineStyle = 'curve'; 
         
-        this.zoom = 1;
-        this.pan = { x: 0, y: 0 };
         this.isPanning = false;
         this.rmbStartNode = null;
         this.rmbStartPos = {x:0,y:0};
@@ -542,6 +707,68 @@ class MindMapEditor extends Application {
         this.selectionRect = { x: 0, y: 0, w: 0, h: 0 };
 
         this._handlers = {};
+        this.isHovered = false;
+    }
+
+    static get defaultOptions() {
+        return foundry.utils.mergeObject(super.defaultOptions, {
+            id: "mindmap-editor",
+            classes: ["mindmap-window"],
+            title: "MindMap Editor",
+            resizable: true,
+            width: 1000,
+            height: 700
+        });
+    }
+
+    get title() { 
+        const titlePart = game.i18n.localize("SIMPLE_MINDMAP.WINDOW_TITLE") || "Редактор MindMap";
+        const mapNamePart = this.mapData ? this.mapData.name : (game.i18n.localize("SIMPLE_MINDMAP.SELECT_MAP") || "Выберите карту");
+        return `${titlePart}: ${mapNamePart}`;
+    }
+
+    _applyDefaultView() {
+        if (this.mapData && this.mapData.defaultView) {
+            this.pan = { x: this.mapData.defaultView.x, y: this.mapData.defaultView.y };
+            this.zoom = this.mapData.defaultView.zoom || 1;
+        } else {
+            this.pan = { x: 0, y: 0 };
+            this.zoom = 1;
+        }
+    }
+
+    _renderNotesHTML(entity) {
+        if (!entity.hasNotes) return '';
+        const isGM = game.user.isGM;
+        let gmNotesHtml = '';
+        let playerNotesHtml = '';
+        
+        (entity.notes || []).forEach(note => {
+            const canDelete = isGM; 
+            const noteHtml = `<div class="note-item"><span>${note.text}</span> <small>- ${note.author}</small>${canDelete ? ` <i class="fas fa-times delete-note" data-target="${entity.id}" data-note="${note.id}"></i>` : ''}</div>`;
+            
+            if (note.isGM) gmNotesHtml += noteHtml;
+            else playerNotesHtml += noteHtml;
+        });
+
+        // Структура на Flexbox для умного растягивания и появления скролла только когда нужно
+        let html = `<div class="entity-notes" data-id="${entity.id}" style="display:flex; flex-direction:column; overflow:hidden; width:100%; height:100%;">`;
+        if (isGM) {
+            html += `<div class="notes-section-title">${game.i18n.localize("SIMPLE_MINDMAP.NOTES_GM") || "Заметки Мастера"}</div>`;
+            html += `<div class="notes-list" style="flex:1; overflow-y:auto; min-height:20px; max-height:none; padding-right: 2px;">${gmNotesHtml || '<div style="color:#666; font-style:italic;">...</div>'}</div>`;
+        }
+        html += `<div class="notes-section-title">${game.i18n.localize("SIMPLE_MINDMAP.NOTES_PLAYERS") || "Заметки Игроков"}</div>`;
+        html += `<div class="notes-list" style="flex:1; overflow-y:auto; min-height:20px; max-height:none; padding-right: 2px;">${playerNotesHtml || '<div style="color:#666; font-style:italic;">...</div>'}</div>`;
+        
+        if (isGM) {
+            html += `<div class="note-input-row">
+                <input type="text" class="new-note-input" placeholder="${game.i18n.localize("SIMPLE_MINDMAP.NOTE_PLACEHOLDER") || "Текст заметки..."}">
+                <label title="Скрытая заметка GM" style="display:flex; align-items:center; gap:2px; font-size:10px;"><input type="checkbox" class="is-gm-note-cb" style="width:12px; height:12px; margin:0;"> GM</label>
+                <button class="add-note-btn"><i class="fas fa-plus"></i></button>
+            </div>`;
+        }
+        html += `</div>`;
+        return html;
     }
 
     _loadMapData() {
@@ -561,75 +788,83 @@ class MindMapEditor extends Application {
         }
     }
 
-    static get defaultOptions() {
-        return foundry.utils.mergeObject(super.defaultOptions, {
-            id: "mindmap-editor",
-            title: game.i18n.localize("SIMPLE_MINDMAP.WINDOW_TITLE"),
-            width: 1000,
-            height: 700,
-            resizable: true,
-            popOut: true,
-            classes: ["mindmap-window"]
-        });
-    }
-
-    get title() { 
-        const titlePart = game.i18n.localize("SIMPLE_MINDMAP.WINDOW_TITLE");
-        const mapNamePart = this.mapData ? this.mapData.name : game.i18n.localize("SIMPLE_MINDMAP.SELECT_MAP");
-        return `${titlePart}: ${mapNamePart}`;
-    }
-
     async _renderInner(...args) {
         const maps = MindMapData.getMaps();
         let optionsHtml = "";
         
         if (Object.keys(maps).length === 0) {
-            optionsHtml = `<option value="" disabled selected>${game.i18n.localize("SIMPLE_MINDMAP.NO_MAPS")}</option>`;
+            optionsHtml = `<option value="" disabled selected>${game.i18n.localize("SIMPLE_MINDMAP.NO_MAPS") || "Нет карт"}</option>`;
         } else {
             for (const [id, map] of Object.entries(maps)) {
+                if (!game.user.isGM && map.hidden) continue; 
                 const selected = id === this.mapId ? "selected" : "";
                 optionsHtml += `<option value="${id}" ${selected}>${map.name}</option>`;
             }
+            if (optionsHtml === "") optionsHtml = `<option value="" disabled selected>${game.i18n.localize("SIMPLE_MINDMAP.NO_MAPS") || "Нет карт"}</option>`;
         }
+
+        const isGM = game.user.isGM;
+        const canEditMap = isGM;
+        const isMapHiddenForPlayer = !isGM && this.mapData?.hidden;
+
+        // Загрузка настроек
+        const theme = game.settings.get(MODULE_ID, 'theme') || 'dark';
+        const font = game.settings.get(MODULE_ID, 'fontFamily') || 'Signika';
 
         const htmlContent = `
         <div class="mm-wrapper">
             <div class="mm-toolbar">
                 <select id="mm-map-selector" title="${game.i18n.localize("SIMPLE_MINDMAP.TOOLBAR_SELECT_MAP")}">${optionsHtml}</select>
                 
+                ${canEditMap ? `
                 <div style="width: 1px; height: 16px; background: #555; margin: 0 5px;"></div>
-                
                 <select id="mm-line-style-select" title="${game.i18n.localize("SIMPLE_MINDMAP.TOOLBAR_LINE_STYLE")}">
-                    <option value="curve" ${this.defaultLineStyle === 'curve' ? 'selected' : ''}>${game.i18n.localize("SIMPLE_MINDMAP.LINE_STYLE_CURVE")}</option>
-                    <option value="straight" ${this.defaultLineStyle === 'straight' ? 'selected' : ''}>${game.i18n.localize("SIMPLE_MINDMAP.LINE_STYLE_STRAIGHT")}</option>
-                    <option value="orthogonal" ${this.defaultLineStyle === 'orthogonal' ? 'selected' : ''}>${game.i18n.localize("SIMPLE_MINDMAP.LINE_STYLE_ORTHOGONAL")}</option>
+                    <option value="curve" ${this.defaultLineStyle === 'curve' ? 'selected' : ''}>${game.i18n.localize("SIMPLE_MINDMAP.LINE_STYLE_CURVE") || "Кривая"}</option>
+                    <option value="straight" ${this.defaultLineStyle === 'straight' ? 'selected' : ''}>${game.i18n.localize("SIMPLE_MINDMAP.LINE_STYLE_STRAIGHT") || "Прямая"}</option>
+                    <option value="orthogonal" ${this.defaultLineStyle === 'orthogonal' ? 'selected' : ''}>${game.i18n.localize("SIMPLE_MINDMAP.LINE_STYLE_ORTHOGONAL") || "Ломаная"}</option>
                 </select>
-                
+                ` : ''}
+
+                ${canEditMap && !isMapHiddenForPlayer ? `
                 <div style="width: 1px; height: 16px; background: #555; margin: 0 5px;"></div>
-                
-                <button class="mm-toolbar-btn" id="mm-add-group" title="Add Group Field"><i class="fas fa-vector-square"></i></button>
+                <button class="mm-toolbar-btn" id="mm-add-group" title="${game.i18n.localize("SIMPLE_MINDMAP.TOOLBAR_ADD_GROUP") || "Добавить Поле"}"><i class="fas fa-vector-square"></i></button>
                 <button class="mm-toolbar-btn" id="mm-add-text" title="${game.i18n.localize("SIMPLE_MINDMAP.TOOLBAR_ADD_TEXT")}"><i class="fas fa-font"></i></button>
                 <button class="mm-toolbar-btn" id="mm-add-link" title="${game.i18n.localize("SIMPLE_MINDMAP.TOOLBAR_ADD_LINK")}"><i class="fas fa-link"></i></button>
+                ` : ''}
                 
+                ${isGM ? `
                 <div style="width: 1px; height: 16px; background: #555; margin: 0 5px;"></div>
-                
                 <button class="mm-toolbar-btn" id="mm-new" title="${game.i18n.localize("SIMPLE_MINDMAP.TOOLBAR_NEW")}"><i class="fas fa-plus"></i></button>
                 <button class="mm-toolbar-btn" id="mm-rename" title="${game.i18n.localize("SIMPLE_MINDMAP.TOOLBAR_RENAME")}"><i class="fas fa-pen"></i></button>
                 <button class="mm-toolbar-btn danger" id="mm-delete" title="${game.i18n.localize("SIMPLE_MINDMAP.TOOLBAR_DELETE")}"><i class="fas fa-trash"></i></button>
+                
+                <div style="width: 1px; height: 16px; background: #555; margin: 0 5px;"></div>
+                <button class="mm-toolbar-btn ${this.mapData?.hidden ? 'danger' : ''}" id="mm-map-visibility" title="${game.i18n.localize("SIMPLE_MINDMAP.TOOLBAR_TOGGLE_VISIBILITY")}"><i class="fas ${this.mapData?.hidden ? 'fa-eye-slash' : 'fa-eye'}"></i></button>
+                ` : ''}
             </div>
 
-            <div class="mindmap-container" id="mm-canvas">
+            <div class="mindmap-container theme-${theme}" id="mm-canvas" style="--mm-font: '${font}', sans-serif;">
                 ${!this.mapData ? `<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#777;">${game.i18n.localize("SIMPLE_MINDMAP.CANVAS_HINT")}</div>` : ''}
+                ${isMapHiddenForPlayer ? `<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#777;font-size:20px;">${game.i18n.localize("SIMPLE_MINDMAP.MAP_HIDDEN_GM") || "Карта скрыта Мастером."}</div>` : ''}
+                
+                ${(!isMapHiddenForPlayer) ? `
                 <div class="selection-lasso" id="mm-lasso"></div>
                 <div class="mindmap-ui">
-                    <button class="mm-btn" id="refresh-map" title="${game.i18n.localize("SIMPLE_MINDMAP.HELP_RESET_VIEW")}"><i class="fas fa-compress-arrows-alt"></i></button>
-                    <div class="help-text">
+                    <div class="mindmap-ui-top">
+                        <button class="mm-btn" id="refresh-map" title="${game.i18n.localize("SIMPLE_MINDMAP.HELP_RESET_VIEW") || 'Вернуться к центру'}"><i class="fas fa-compress-arrows-alt"></i></button>
+                        ${canEditMap ? `<button class="mm-btn" id="save-view" title="Сохранить текущий вид как центр по умолчанию"><i class="fas fa-crosshairs"></i></button>` : ''}
+                        <button class="mm-btn" id="toggle-help" title="${game.i18n.localize("SIMPLE_MINDMAP.TOOLBAR_HELP") || 'Помощь'}"><i class="fas fa-question"></i></button>
+                    </div>
+                    <div class="help-text" id="help-text-content">
                         <b>${game.i18n.localize("SIMPLE_MINDMAP.HELP_TEXT_1")}</b><br>
                         <b>${game.i18n.localize("SIMPLE_MINDMAP.HELP_TEXT_2")}</b><br>
+                        ${canEditMap ? `
                         <b>${game.i18n.localize("SIMPLE_MINDMAP.HELP_TEXT_3")}</b><br>
                         <b>${game.i18n.localize("SIMPLE_MINDMAP.HELP_TEXT_4")}</b><br>
                         <b>${game.i18n.localize("SIMPLE_MINDMAP.HELP_TEXT_5")}</b><br>
-                        <b>${game.i18n.localize("SIMPLE_MINDMAP.HELP_TEXT_6")}</b>
+                        <b>${game.i18n.localize("SIMPLE_MINDMAP.HELP_TEXT_6")}</b><br>
+                        <b>${game.i18n.localize("SIMPLE_MINDMAP.HELP_TEXT_7") || 'Ctrl + Клик: Мультивыделение'}</b><br>
+                        <b>${game.i18n.localize("SIMPLE_MINDMAP.HELP_TEXT_8") || 'Delete: Удалить выделенное'}</b>` : ''}
                     </div>
                 </div>
                 <div class="mindmap-content">
@@ -638,6 +873,7 @@ class MindMapEditor extends Application {
                     <div class="connection-nodes-layer"></div>
                     <div class="nodes-layer"></div>
                 </div>
+                ` : ''}
             </div>
         </div>`;
         return $(htmlContent);
@@ -657,26 +893,54 @@ class MindMapEditor extends Application {
         this.svgLayer = this.container.find('.mindmap-svg-layer')[0]; 
         this.lasso = html.find('#mm-lasso');
         
-        if (this.mapData) {
+        if (this.mapData && (!this.mapData.hidden || game.user.isGM)) {
             this._renderGraph();
             this._updateTransform();
         }
 
-        html.find('#mm-map-selector').change((e) => this._switchMap(e.target.value));
-        html.find('#mm-line-style-select').change((e) => { this.defaultLineStyle = e.target.value; });
-        html.find('#mm-new').click(() => this._createMapDialog());
-        html.find('#mm-rename').click(() => this._renameMapDialog());
-        html.find('#mm-delete').click(() => this._deleteMapDialog());
-        html.find('#mm-add-link').click(() => this._addMapLinkDialog());
-        html.find('#mm-add-text').click(() => this._addTextNodeDialog());
-        html.find('#mm-add-group').click(() => this._addGroup());
+        html.find('#mm-map-selector').change((e) => {
+            this._switchMap(e.target.value);
+        });
+
+        // GM / Edit Controls
+        if (game.user.isGM) {
+            html.find('#mm-line-style-select').change((e) => { this.defaultLineStyle = e.target.value; });
+            html.find('#mm-new').click(() => this._createMapDialog());
+            html.find('#mm-rename').click(() => this._renameMapDialog());
+            html.find('#mm-delete').click(() => this._deleteMapDialog());
+            
+            html.find('#mm-map-visibility').click(() => {
+                if(this.mapData) {
+                    this.mapData.hidden = !this.mapData.hidden;
+                    MindMapData.updateMap(this.mapId, this.mapData);
+                    this.render(true);
+                }
+            });
+            
+            html.find('#mm-add-link').click(() => this._addMapLinkDialog());
+            html.find('#mm-add-text').click(() => this._addTextNodeDialog());
+            html.find('#mm-add-group').click(() => this._addGroup());
+            
+            html.find('#save-view').click(() => {
+                if (this.mapData) {
+                    this.mapData.defaultView = { x: this.pan.x, y: this.pan.y, zoom: this.zoom };
+                    MindMapData.updateMap(this.mapId, this.mapData);
+                    ui.notifications.info("Положение холста сохранено как центр по умолчанию.");
+                }
+            });
+        }
+
         html.find('#refresh-map').click(() => {
-            this.zoom = 1; this.pan = { x: 0, y: 0 };
+            this._applyDefaultView();
             this._updateTransform();
         });
         
+        html.find('#toggle-help').click(() => {
+            html.find('#help-text-content').toggleClass('active');
+        });
+        
         const dropEl = this.container[0]; 
-        if (dropEl) {
+        if (dropEl && game.user.isGM) {
             dropEl.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; });
             dropEl.addEventListener('drop', this._onDropEntity.bind(this));
         }
@@ -689,40 +953,126 @@ class MindMapEditor extends Application {
         
         this.container.on('click', '.comment-link', this._onCommentLinkClick.bind(this));
         
-        // Group interactions
-        this.container.on('click', '.group-collapse-toggle', this._onGroupCollapseToggle.bind(this));
-        // Use both header and handle for dragging, makes it much more convenient
-        this.container.on('mousedown', '.group-header, .group-handle', this._onGroupHandleMouseDown.bind(this));
-        this.container.on('mousedown', '.group-resize', this._onGroupResizeMouseDown.bind(this));
+        // Разрешаем кликать в заметках и вводить текст, не сдвигая карту
+        this.container.on('mousedown dblclick', '.entity-notes', (e) => e.stopPropagation());
         
-        this.container.on('dblclick', '.mindmap-node', (e) => {
-            e.preventDefault(); e.stopPropagation();
-            this._onNodeDblClick(e, $(e.currentTarget));
+        this.container.on('click', '.add-note-btn', this._onAddNote.bind(this));
+        this.container.on('click', '.delete-note', this._onDeleteNote.bind(this));
+        
+        this.container.on('keydown', '.new-note-input', (e) => {
+            e.stopPropagation();
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                $(e.currentTarget).siblings('.add-note-btn').click();
+            }
         });
+        
+        // Group interactions (GM ONLY)
+        if (game.user.isGM) {
+            this.container.on('click', '.group-visibility-toggle', this._onGroupVisibilityToggle.bind(this));
+            
+            this.container.on('click', '.conn-settings-btn', (e) => {
+                if (e.shiftKey) return; // Prevent open settings when branching
+                const handle = $(e.currentTarget).closest('.connection-handle');
+                this._onConnectionDblClick(e, handle);
+            });
+            
+            this.container.on('click', '.node-vis-toggle, .conn-vis-toggle', this._onQuickVisToggle.bind(this));
+            this.container.on('click', '.conn-lock-toggle', this._onConnLockToggle.bind(this));
+            
+            this.container.on('mousedown', '.conn-move-handle', (e) => {
+                e.stopPropagation();
+                if ($(e.currentTarget).hasClass('disabled')) return; 
+                const handle = $(e.currentTarget).closest('.connection-handle');
+                this.draggingConnection = handle.data('id');
+            });
 
-        this.container.on('dblclick', '.connection-handle', (e) => {
-            e.preventDefault(); e.stopPropagation();
-            this._onConnectionDblClick(e, $(e.currentTarget));
-        });
+            // Отрыв и переподключение связи
+            this.container.on('mousedown', '.conn-endpoint-svg', (e) => {
+                e.stopPropagation();
+                if (e.button !== 0) return;
+                const connId = $(e.currentTarget).attr('data-conn-id');
+                const end = $(e.currentTarget).attr('data-end');
+                
+                const c = this.mapData.connections.find(x => x.id === connId);
+                if (!c) return;
 
-        // Easily trigger double click edit from group header
-        this.container.on('dblclick', '.group-header', (e) => {
-            e.preventDefault(); e.stopPropagation();
-            this._onGroupDblClick(e, $(e.currentTarget));
-        });
+                this.reconnecting = { 
+                    connId: c.id, 
+                    end: end, 
+                    fixedNode: end === 'to' ? c.from : c.to,
+                    connData: {...c}
+                };
+                
+                // Временно убираем связь, чтобы отрисовать линию к курсору
+                this.mapData.connections = this.mapData.connections.filter(x => x.id !== connId);
+                this.connectingSource = this.reconnecting.fixedNode;
+                this.container.addClass('show-anchors');
+                this._renderGraph();
+            });
 
-        this.container.on('mousedown', '.connection-handle', this._onConnectionMouseDown.bind(this));
+            // Редактирование голых линий связи
+            this.container.on('dblclick', '.connection-svg-path', (e) => {
+                e.preventDefault(); e.stopPropagation();
+                const connId = $(e.currentTarget).attr('data-conn-id');
+                const target = this.connectionLayer.find(`[data-id="${connId}"]`);
+                if (target.length) {
+                    this._onConnectionDblClick(e, target);
+                } else {
+                    // Если у связи нет HTML блока, создаем фейковый элемент для передачи ID
+                    this._onConnectionDblClick(e, $(`<div data-id="${connId}"></div>`));
+                }
+            });
+            
+            this.container.on('mousedown dblclick', '.node-controls, .conn-part-btn:not(.conn-move-handle)', (e) => e.stopPropagation());
+            
+            this.container.on('mousedown', '.group-header, .group-handle', this._onGroupHandleMouseDown.bind(this));
+            this.container.on('mousedown', '.group-resize', this._onGroupResizeMouseDown.bind(this));
+            this.container.on('mousedown', '.node-resize', this._onNodeResizeMouseDown.bind(this));
 
+            this.container.on('dblclick', '.mindmap-node', (e) => {
+                e.preventDefault(); e.stopPropagation();
+                this._onNodeDblClick(e, $(e.currentTarget));
+            });
+
+            this.container.on('dblclick', '.connection-handle', (e) => {
+                e.preventDefault(); e.stopPropagation();
+                this._onConnectionDblClick(e, $(e.currentTarget));
+            });
+
+            this.container.on('dblclick', '.group-header', (e) => {
+                e.preventDefault(); e.stopPropagation();
+                const groupEl = $(e.currentTarget).closest('.mindmap-group');
+                this._onGroupDblClick(e, $(e.currentTarget));
+            });
+
+            this.container.on('mousedown', '.connection-handle', (e) => {
+                // If shift key is pressed, we allow clicking anywhere on the connection to start a branch
+                if (e.shiftKey) {
+                    this._onConnectionMouseDown(e);
+                    return;
+                }
+                if ($(e.target).closest('.conn-part-btn, .conn-part-text, .entity-notes').length) return; 
+                this._onConnectionMouseDown(e);
+            });
+        }
+
+        // БАЗОВАЯ РАБОТА С ГЛОБАЛЬНЫМИ СОБЫТИЯМИ
         this._handlers.mousemove = this._onMouseMove.bind(this);
         this._handlers.mouseup = this._onMouseUp.bind(this);
         this._handlers.keydown = this._onKeyDown.bind(this);
+        this._handlers.globalMousedown = this._onGlobalMousedown.bind(this);
         
         window.addEventListener('mousemove', this._handlers.mousemove);
         window.addEventListener('mouseup', this._handlers.mouseup);
         window.addEventListener('keydown', this._handlers.keydown);
+        window.addEventListener('mousedown', this._handlers.globalMousedown);
+
+        this.element.on('mouseenter', () => this.isHovered = true);
+        this.element.on('mouseleave', () => this.isHovered = false);
     }
 
-    async close(options) {
+    async close(options={}) {
         this._removeGlobalListeners();
         return super.close(options);
     }
@@ -731,6 +1081,7 @@ class MindMapEditor extends Application {
         if (this._handlers.mousemove) window.removeEventListener('mousemove', this._handlers.mousemove);
         if (this._handlers.mouseup) window.removeEventListener('mouseup', this._handlers.mouseup);
         if (this._handlers.keydown) window.removeEventListener('keydown', this._handlers.keydown);
+        if (this._handlers.globalMousedown) window.removeEventListener('mousedown', this._handlers.globalMousedown);
         this._handlers = {};
     }
 
@@ -741,17 +1092,18 @@ class MindMapEditor extends Application {
         await MindMapData.setLastMapId(newId);
         this.mapId = newId;
         this._loadMapData();
+        this._applyDefaultView();
         this.selectedNodeIds.clear();
         this.render(true); 
     }
 
     _createMapDialog() { 
         new Dialog({
-            title: game.i18n.localize("SIMPLE_MINDMAP.DIALOG_NEW_MAP_TITLE"),
-            content: `<form><div class="form-group"><label>${game.i18n.localize("SIMPLE_MINDMAP.LABEL_NAME")}</label><input type="text" name="name" autofocus></div></form>`,
+            title: game.i18n.localize("SIMPLE_MINDMAP.DIALOG_NEW_MAP_TITLE") || "Создать новую карту",
+            content: `<form><div class="form-group"><label>${game.i18n.localize("SIMPLE_MINDMAP.LABEL_NAME") || "Название карты"}</label><input type="text" name="name" autofocus></div></form>`,
             buttons: {
                 ok: {
-                    label: game.i18n.localize("SIMPLE_MINDMAP.BUTTON_CREATE"),
+                    label: game.i18n.localize("SIMPLE_MINDMAP.BUTTON_CREATE") || "Создать",
                     icon: '<i class="fas fa-check"></i>',
                     callback: async (html) => {
                         const name = html.find('[name="name"]').val();
@@ -768,11 +1120,11 @@ class MindMapEditor extends Application {
     _renameMapDialog() { 
         if (!this.mapData) return;
         new Dialog({
-            title: game.i18n.localize("SIMPLE_MINDMAP.DIALOG_RENAME_MAP_TITLE"),
-            content: `<form><div class="form-group"><label>${game.i18n.localize("SIMPLE_MINDMAP.LABEL_NEW_NAME")}</label><input type="text" name="name" value="${this.mapData.name}" autofocus></div></form>`,
+            title: game.i18n.localize("SIMPLE_MINDMAP.DIALOG_RENAME_MAP_TITLE") || "Переименовать карту",
+            content: `<form><div class="form-group"><label>${game.i18n.localize("SIMPLE_MINDMAP.LABEL_NEW_NAME") || "Новое название"}</label><input type="text" name="name" value="${this.mapData.name}" autofocus></div></form>`,
             buttons: {
                 ok: {
-                    label: game.i18n.localize("SIMPLE_MINDMAP.BUTTON_SAVE"),
+                    label: game.i18n.localize("SIMPLE_MINDMAP.BUTTON_SAVE") || "Сохранить",
                     callback: async (html) => {
                         const name = html.find('[name="name"]').val();
                         if (name) {
@@ -788,9 +1140,9 @@ class MindMapEditor extends Application {
 
     _deleteMapDialog() { 
         if (!this.mapData) return;
-        const content = game.i18n.format("SIMPLE_MINDMAP.CONFIRM_DELETE", { mapName: this.mapData.name });
+        const content = (game.i18n.localize("SIMPLE_MINDMAP.CONFIRM_DELETE") || "Вы уверены, что хотите удалить карту {mapName}?").replace('{mapName}', this.mapData.name);
         Dialog.confirm({
-            title: game.i18n.localize("SIMPLE_MINDMAP.DIALOG_DELETE_MAP_TITLE"),
+            title: game.i18n.localize("SIMPLE_MINDMAP.DIALOG_DELETE_MAP_TITLE") || "Удаление карты",
             content: `<p>${content}</p>`,
             yes: async () => {
                 await MindMapData.deleteMap(this.mapId);
@@ -812,20 +1164,22 @@ class MindMapEditor extends Application {
         const maps = MindMapData.getMaps();
         let options = "";
         for (const [id, map] of Object.entries(maps)) {
-            if (id !== this.mapId) options += `<option value="${id}">${map.name}</option>`;
+            if (id !== this.mapId && (game.user.isGM || !map.hidden)) {
+                options += `<option value="${id}">${map.name}</option>`;
+            }
         }
 
         if (!options) {
-            ui.notifications.warn(game.i18n.localize("SIMPLE_MINDMAP.NOTIFICATION_NO_OTHER_MAPS"));
+            ui.notifications.warn(game.i18n.localize("SIMPLE_MINDMAP.NOTIFICATION_NO_OTHER_MAPS") || "Нет других карт.");
             return;
         }
 
         new Dialog({
-            title: game.i18n.localize("SIMPLE_MINDMAP.DIALOG_ADD_LINK_TITLE"),
-            content: `<div class="mm-dialog-content"><div class="mm-dialog-row"><label>${game.i18n.localize("SIMPLE_MINDMAP.LABEL_MAP")}</label><select id="link-map-select">${options}</select></div></div>`,
+            title: game.i18n.localize("SIMPLE_MINDMAP.DIALOG_ADD_LINK_TITLE") || "Ссылка на другую карту",
+            content: `<div class="mm-dialog-content"><div class="mm-dialog-row"><label>${game.i18n.localize("SIMPLE_MINDMAP.LABEL_MAP") || "Целевая карта"}</label><select id="link-map-select">${options}</select></div></div>`,
             buttons: {
                 add: {
-                    label: game.i18n.localize("SIMPLE_MINDMAP.BUTTON_ADD"),
+                    label: game.i18n.localize("SIMPLE_MINDMAP.BUTTON_ADD") || "Добавить ссылку",
                     icon: '<i class="fas fa-link"></i>',
                     callback: async (html) => {
                         const targetMapId = html.find('#link-map-select').val();
@@ -843,10 +1197,11 @@ class MindMapEditor extends Application {
                                 targetId: targetMapId,
                                 name: targetMap.name,
                                 img: "icons/svg/direction.svg",
-                                x: centerX - 75, y: centerY - 25
+                                x: centerX - 75, y: centerY - 25,
+                                hidden: false,
+                                backgroundColor: ""
                             });
                             await MindMapData.updateMap(this.mapId, this.mapData);
-                            this._renderGraph();
                         }
                     }
                 }
@@ -858,20 +1213,22 @@ class MindMapEditor extends Application {
         if (!this.mapData) return;
         const centerX = (this.container.width() / 2 - this.pan.x) / this.zoom;
         const centerY = (this.container.height() / 2 - this.pan.y) / this.zoom;
+        const font = game.settings.get(MODULE_ID, 'fontFamily') || 'Signika';
         
         if (!this.mapData.nodes) this.mapData.nodes = [];
         this.mapData.nodes.push({
             id: foundry.utils.randomID(),
             nodeType: 'text',
-            name: "New Text",
+            name: "Новый текст",
             x: centerX, y: centerY,
+            hidden: false,
+            backgroundColor: "transparent",
             style: {
                 fontSize: 16,
-                fontFamily: 'Signika',
+                fontFamily: font,
                 color: '#ffffff'
             }
         });
-        this._renderGraph();
         MindMapData.updateMap(this.mapId, this.mapData);
     }
 
@@ -883,14 +1240,14 @@ class MindMapEditor extends Application {
         if (!this.mapData.groups) this.mapData.groups = [];
         this.mapData.groups.push({
             id: foundry.utils.randomID(),
-            name: "New Field",
+            name: "Новое Поле",
             x: centerX - 100, y: centerY - 100,
             width: 200, height: 200,
             color: "#333333",
             alpha: 0.5,
-            collapsed: false
+            hidden: false,
+            bgImage: ""
         });
-        this._renderGraph();
         MindMapData.updateMap(this.mapId, this.mapData);
     }
 
@@ -960,6 +1317,8 @@ class MindMapEditor extends Application {
         }
 
         if (e.target.classList.contains('mindmap-container') || e.target.closest('.mindmap-content')) {
+            if (!game.user.isGM) return;
+
             if (!e.shiftKey && !e.ctrlKey) {
                 this.selectedNodeIds.clear();
                 this._renderSelection();
@@ -1003,8 +1362,9 @@ class MindMapEditor extends Application {
                 name: doc.name,
                 img,
                 x: coords.x - 75, y: coords.y - 25,
+                hidden: false,
+                backgroundColor: ""
             });
-            this._renderGraph(); 
             await MindMapData.updateMap(this.mapId, this.mapData); 
         } catch (err) { console.error(err); }
     }
@@ -1014,11 +1374,9 @@ class MindMapEditor extends Application {
         const nodeEl = img.closest('.mindmap-node');
         const nodeId = nodeEl.data('id');
         const node = this.mapData.nodes.find(n => n.id === nodeId);
-
-        if (!node || !node.uuid) {
-            e.preventDefault();
-            return;
-        }
+        
+        if (!game.user.isGM) { e.preventDefault(); return; }
+        if (!node || !node.uuid) { e.preventDefault(); return; }
 
         let type = node.docType; 
         if (!type || type === 'Default') {
@@ -1052,6 +1410,8 @@ class MindMapEditor extends Application {
 
         if (!this.mapData) return;
 
+        const isGM = game.user.isGM;
+
         // Ensure SVGLayer has defs for arrows
         let defs = this.svgLayer.querySelector('defs');
         if (!defs) {
@@ -1059,11 +1419,34 @@ class MindMapEditor extends Application {
             this.svgLayer.appendChild(defs);
         }
 
-        const hiddenNodes = new Set();
-        const hiddenNodeToGroup = new Map();
+        const explicitlyHiddenGroups = new Set();
+        const explicitlyHiddenNodes = new Set();
 
-        // 0. Render Groups & Find hidden nodes from collapsed groups
+        // Pass 1: Find all hidden groups & hidden nodes
+        (this.mapData.groups || []).forEach(g => { if (g.hidden) explicitlyHiddenGroups.add(g.id); });
+        (this.mapData.nodes || []).forEach(n => { if (n.hidden) explicitlyHiddenNodes.add(n.id); });
+
+        // Pass 2: Trapping nodes inside groups for cascading hides
+        (this.mapData.nodes || []).forEach(n => {
+            const elWidth = n.width || (n.nodeType === 'text' ? 100 : 160);
+            const elHeight = n.height || (n.nodeType === 'text' ? 30 : 50);
+            const cx = n.x + elWidth / 2; 
+            const cy = n.y + elHeight / 2;
+            
+            for (const gid of explicitlyHiddenGroups) {
+                const g = this.mapData.groups.find(x => x.id === gid);
+                const gHeight = g ? g.height : 0;
+                if (g && cx >= g.x && cx <= g.x + g.width && cy >= g.y && cy <= g.y + gHeight) {
+                    explicitlyHiddenNodes.add(n.id); 
+                    break;
+                }
+            }
+        });
+
+        // 0. Render Groups
         (this.mapData.groups || []).forEach(group => {
+            if (!isGM && group.hidden) return; 
+            
             const color = group.color || "#333333";
             const alpha = group.alpha !== undefined ? group.alpha : 0.5;
             
@@ -1078,31 +1461,26 @@ class MindMapEditor extends Application {
                 b = parseInt(color.substring(5, 7), 16);
             }
             const rgba = `rgba(${r},${g},${b},${alpha})`;
-            const isCollapsed = group.collapsed === true;
-
-            if (isCollapsed) {
-                (this.mapData.nodes || []).forEach(n => {
-                    const cx = n.x + 80; 
-                    const cy = n.y + 25;
-                    // Check bounds based on FULL group dimensions to trap nodes inside
-                    if (cx >= group.x && cx <= group.x + group.width && cy >= group.y && cy <= group.y + group.height) {
-                        hiddenNodes.add(n.id);
-                        hiddenNodeToGroup.set(n.id, group.id);
-                    }
-                });
-            }
             
+            const gmHiddenClass = (isGM && group.hidden) ? 'gm-hidden-item' : '';
+            const bgImageStyle = (group.bgImage) ? `background-image: url('${group.bgImage}'); background-size: cover; background-position: center; background-blend-mode: overlay;` : '';
+
+            const gmControls = isGM ? `
+                <div class="group-btn group-visibility-toggle ${group.hidden ? 'active' : ''}" title="${game.i18n.localize("SIMPLE_MINDMAP.TOOLBAR_TOGGLE_VISIBILITY") || "Видимость"}">
+                    <i class="fas ${group.hidden ? 'fa-eye-slash' : 'fa-eye'}"></i>
+                </div>
+            ` : '';
+
             const el = $(`
-                <div class="mindmap-group ${isCollapsed ? 'collapsed' : ''}" data-id="${group.id}" 
-                     style="--group-color: ${color}; --group-bg-color: ${rgba}; left: ${group.x}px; top: ${group.y}px; width: ${group.width}px; height: ${group.height}px; border-color: ${color}; background: ${rgba};">
+                <div class="mindmap-group ${gmHiddenClass}" data-id="${group.id}" 
+                     style="--group-color: ${color}; --group-bg-color: ${rgba}; left: ${group.x}px; top: ${group.y}px; width: ${group.width}px; height: ${group.height}px; border-color: ${color}; background-color: ${rgba}; ${bgImageStyle}">
                      <div class="group-header">
-                        <div class="group-btn group-collapse-toggle" title="Collapse/Expand">
-                            <i class="fas ${isCollapsed ? 'fa-chevron-down' : 'fa-chevron-up'}"></i>
-                        </div>
                         <div class="group-label">${group.name}</div>
+                        ${gmControls}
                      </div>
                      <div class="group-handle"><i class="fas fa-arrows-alt"></i></div>
                      <div class="group-resize"></div>
+                     <div class="group-notes-container">${this._renderNotesHTML(group)}</div>
                 </div>
             `);
             this.groupsLayer.append(el);
@@ -1110,18 +1488,41 @@ class MindMapEditor extends Application {
 
         // 1. Render Nodes
         (this.mapData.nodes || []).forEach(node => {
-            const isHidden = hiddenNodes.has(node.id);
+            if (!isGM && explicitlyHiddenNodes.has(node.id)) return;
+
+            const gmHiddenClass = (isGM && explicitlyHiddenNodes.has(node.id)) ? 'gm-hidden-item' : '';
             const selected = this.selectedNodeIds.has(node.id) ? "selected" : "";
+            
+            const widthStyle = node.width ? `width: ${node.width}px;` : '';
+            const heightStyle = node.height ? `height: ${node.height}px;` : '';
+            const sizeStyle = widthStyle + heightStyle;
+            const bgColorStyle = node.backgroundColor ? `background-color: ${node.backgroundColor};` : 'background-color: transparent;';
+
+            let controlsHtml = '';
+            if (isGM) {
+                controlsHtml = `
+                <div class="node-controls">
+                    <div class="node-control-btn node-vis-toggle ${node.hidden ? 'active' : ''}" data-id="${node.id}" title="Скрыть/Показать">
+                        <i class="fas ${node.hidden ? 'fa-eye-slash' : 'fa-eye'}"></i>
+                    </div>
+                </div>`;
+            }
+
             let el;
             
             if (node.nodeType === 'text') {
                 const style = node.style || { fontSize: 16, color: '#ffffff', fontFamily: 'Signika' };
-                el = $(`<div class="mindmap-node node-text ${selected} ${isHidden ? 'hidden' : ''}" data-id="${node.id}" 
-                        style="left: ${node.x}px; top: ${node.y}px; font-size: ${style.fontSize}px; color: ${style.color}; font-family: ${style.fontFamily}">
-                        <div class="node-main-content">${node.name}</div>
+                el = $(`<div class="mindmap-node node-text ${selected} ${gmHiddenClass}" data-id="${node.id}" 
+                        style="left: ${node.x}px; top: ${node.y}px; ${sizeStyle} ${bgColorStyle} font-size: ${style.fontSize}px; color: ${style.color}; font-family: ${style.fontFamily || 'var(--mm-font)'}">
+                        <div class="node-layout-wrapper">
+                            <div class="node-main-content" style="justify-content:center; align-items:center;">${node.name}</div>
+                            ${controlsHtml}
+                        </div>
+                        ${this._renderNotesHTML(node)}
+                        <div class="node-resize"></div>
                     </div>`);
             } else {
-                const bgColorStyle = node.backgroundColor ? `background-color: ${node.backgroundColor};` : '';
+                const cardBgColor = node.backgroundColor || 'var(--mm-node-bg)';
                 
                 let commentHtml = '';
                 let linkHtml = '';
@@ -1136,15 +1537,20 @@ class MindMapEditor extends Application {
                     commentHtml = `<div class="node-comment">${node.comment || ''}${node.comment && linkHtml ? '<br>' : ''}${linkHtml}</div>`;
                 }
 
-                const isDraggable = !!node.uuid;
+                const isDraggable = !!node.uuid && isGM;
 
                 el = $(`
-                    <div class="mindmap-node node-card ${selected} ${isHidden ? 'hidden' : ''}" data-id="${node.id}" style="left: ${node.x}px; top: ${node.y}px; ${bgColorStyle}">
-                        <div class="node-main-content">
-                            <img src="${node.img}" draggable="${isDraggable}">
-                            <span>${node.name}</span>
+                    <div class="mindmap-node node-card ${selected} ${gmHiddenClass}" data-id="${node.id}" style="left: ${node.x}px; top: ${node.y}px; background-color: ${cardBgColor}; ${sizeStyle}">
+                        <div class="node-layout-wrapper">
+                            <div class="node-main-content">
+                                <img src="${node.img}" draggable="${isDraggable}">
+                                <span>${node.name}</span>
+                            </div>
+                            ${controlsHtml}
                         </div>
                         ${commentHtml}
+                        ${this._renderNotesHTML(node)}
+                        <div class="node-resize"></div>
                     </div>
                 `);
 
@@ -1158,11 +1564,18 @@ class MindMapEditor extends Application {
 
         // 2. Render Connections
         (this.mapData.connections || []).forEach(c => {
-            let fromId = hiddenNodeToGroup.has(c.from) ? hiddenNodeToGroup.get(c.from) : c.from;
-            let toId = hiddenNodeToGroup.has(c.to) ? hiddenNodeToGroup.get(c.to) : c.to;
+            let fromId = c.from;
+            let toId = c.to;
 
-            // If a connection connects two elements inside the same collapsed group, it stays hidden
             if (fromId === toId) return;
+
+            // Cascading Connection Hiding
+            const isConnExplicitlyHidden = c.hidden;
+            const fromIsHidden = explicitlyHiddenNodes.has(c.from) || explicitlyHiddenGroups.has(c.from);
+            const toIsHidden = explicitlyHiddenNodes.has(c.to) || explicitlyHiddenGroups.has(c.to);
+            const isConnFullyHidden = isConnExplicitlyHidden || fromIsHidden || toIsHidden;
+
+            if (!isGM && isConnFullyHidden) return;
 
             const srcBounds = this._getEntityBounds(fromId);
             const dstBounds = this._getEntityBounds(toId);
@@ -1171,7 +1584,8 @@ class MindMapEditor extends Application {
             const validDst = this.mapData.nodes.some(n=>n.id===toId) || this.mapData.groups.some(g=>g.id===toId) || this.mapData.connections.some(x=>x.id===toId);
 
             if (validSrc && validDst) {
-                 this._drawConnection(srcBounds, dstBounds, c);
+                 const g = this._drawConnection(srcBounds, dstBounds, c, false, isConnFullyHidden);
+                 if (isGM && isConnFullyHidden) g.classList.add('gm-hidden-item');
             }
         });
     }
@@ -1198,18 +1612,17 @@ class MindMapEditor extends Application {
                     h: el.outerHeight()
                 };
             }
-            if (node.nodeType === 'text') return { x: node.x, y: node.y, w: 100, h: 30 };
-            return { x: node.x, y: node.y, w: 160, h: 50 };
+            if (node.nodeType === 'text') return { x: node.x, y: node.y, w: node.width || 100, h: node.height || 30 };
+            return { x: node.x, y: node.y, w: node.width || 160, h: node.height || 50 };
         }
 
         const group = (this.mapData.groups || []).find(g => g.id === id);
         if (group) {
-            // Строгие математические рамки, чтобы избежать багов с DOM-ренденрингом (высота свернутого поля = 40)
             return { 
                 x: group.x, 
                 y: group.y, 
                 w: group.width, 
-                h: group.collapsed ? 40 : group.height 
+                h: group.height 
             };
         }
 
@@ -1221,11 +1634,20 @@ class MindMapEditor extends Application {
             const x1 = srcBounds.x + srcBounds.w/2, y1 = srcBounds.y + srcBounds.h/2;
             const x2 = dstBounds.x + dstBounds.w/2, y2 = dstBounds.y + dstBounds.h/2;
             
-            let posx = (x1 + x2) / 2, posy = (y1 + y2) / 2;
-            if (conn.style === 'curve') {
-                 const t = 0.5;
-                 posx = Math.pow(1-t,3)*x1 + 3*Math.pow(1-t,2)*t*posx + 3*(1-t)*Math.pow(t,2)*posx + Math.pow(t,3)*x2;
-                 posy = Math.pow(1-t,3)*y1 + 3*Math.pow(1-t,2)*t*y1 + 3*(1-t)*Math.pow(t,2)*y2 + Math.pow(t,3)*y2;
+            let posx, posy;
+            if (conn.pinned && conn.cx !== undefined && conn.cy !== undefined) {
+                posx = conn.cx;
+                posy = conn.cy;
+            } else {
+                if (conn.style === 'curve') {
+                     const t = 0.5;
+                     const midX = (x1 + x2) / 2;
+                     posx = Math.pow(1-t,3)*x1 + 3*Math.pow(1-t,2)*t*midX + 3*(1-t)*Math.pow(t,2)*midX + Math.pow(t,3)*x2;
+                     posy = Math.pow(1-t,3)*y1 + 3*Math.pow(1-t,2)*t*y1 + 3*(1-t)*Math.pow(t,2)*y2 + Math.pow(t,3)*y2;
+                } else {
+                     posx = (x1 + x2) / 2; 
+                     posy = (y1 + y2) / 2;
+                }
             }
             return { x: posx, y: posy, w: 14, h: 14 }; 
         }
@@ -1255,40 +1677,57 @@ class MindMapEditor extends Application {
         };
     }
 
-    _drawConnection(boundsA, boundsB, connData, isTemp = false) {
+    _drawConnection(boundsA, boundsB, connData, isTemp = false, isConnFullyHidden = false) {
         const cx1 = boundsA.x + boundsA.w/2;
         const cy1 = boundsA.y + boundsA.h/2;
         const cx2 = boundsB.x + boundsB.w/2;
         const cy2 = boundsB.y + boundsB.h/2;
 
-        const p1 = this._getEdgePoint({x: cx2, y: cy2}, boundsA);
-        const p2 = this._getEdgePoint({x: cx1, y: cy1}, boundsB);
+        const hx_approx = (connData.pinned && connData.cx !== undefined) ? connData.cx : (cx1 + cx2) / 2;
+        const hy_approx = (connData.pinned && connData.cy !== undefined) ? connData.cy : (cy1 + cy2) / 2;
+
+        const p1 = this._getEdgePoint({x: hx_approx, y: hy_approx}, boundsA);
+        const p2 = this._getEdgePoint({x: hx_approx, y: hy_approx}, boundsB);
 
         const x1 = p1.x, y1 = p1.y;
         const x2 = p2.x, y2 = p2.y;
-        
-        const midX = (cx1 + cx2) / 2; 
         
         const color = connData.color || "#aaaaaa";
         const style = connData.style || 'curve'; 
         const strokeType = connData.strokeType || 'solid';
 
         let pathD = "";
-        let posx = 0, posy = 0;
+        let posx = hx_approx, posy = hy_approx;
 
         if (style === 'straight') {
-            pathD = `M ${x1} ${y1} L ${x2} ${y2}`;
-            posx = (x1 + x2) / 2; 
-            posy = (y1 + y2) / 2;
+            if (!connData.pinned) {
+                pathD = `M ${x1} ${y1} L ${x2} ${y2}`;
+                posx = (x1 + x2) / 2;
+                posy = (y1 + y2) / 2;
+            } else {
+                pathD = `M ${x1} ${y1} L ${hx_approx} ${hy_approx} L ${x2} ${y2}`;
+            }
         } else if (style === 'orthogonal') {
-            pathD = `M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${x2} ${y2}`;
-            posx = midX; 
-            posy = (y1 + y2) / 2;
+            if (!connData.pinned) {
+                const midX = (x1 + x2) / 2;
+                pathD = `M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${x2} ${y2}`;
+                posx = midX;
+                posy = (y1 + y2) / 2;
+            } else {
+                pathD = `M ${x1} ${y1} L ${hx_approx} ${y1} L ${hx_approx} ${hy_approx} L ${x2} ${hy_approx} L ${x2} ${y2}`;
+            }
         } else {
-            pathD = `M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}`;
-            const t = 0.5;
-            posx = Math.pow(1-t,3)*x1 + 3*Math.pow(1-t,2)*t*midX + 3*(1-t)*Math.pow(t,2)*midX + Math.pow(t,3)*x2;
-            posy = Math.pow(1-t,3)*y1 + 3*Math.pow(1-t,2)*t*y1 + 3*(1-t)*Math.pow(t,2)*y2 + Math.pow(t,3)*y2;
+            if (!connData.pinned) {
+                const midX = (x1 + x2) / 2;
+                pathD = `M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}`;
+                const t = 0.5;
+                posx = Math.pow(1-t,3)*x1 + 3*Math.pow(1-t,2)*t*midX + 3*(1-t)*Math.pow(t,2)*midX + Math.pow(t,3)*x2;
+                posy = Math.pow(1-t,3)*y1 + 3*Math.pow(1-t,2)*t*y1 + 3*(1-t)*Math.pow(t,2)*y2 + Math.pow(t,3)*y2;
+            } else {
+                const ctrlX = 2 * hx_approx - 0.5 * (x1 + x2);
+                const ctrlY = 2 * hy_approx - 0.5 * (y1 + y2);
+                pathD = `M ${x1} ${y1} Q ${ctrlX} ${ctrlY} ${x2} ${y2}`;
+            }
         }
 
         const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -1330,12 +1769,28 @@ class MindMapEditor extends Application {
         
         g.appendChild(path);
 
-        // Drawing anchors (dots) at boundary points
+        // Интерактивная зона для двойного клика (чтобы голая линия была кликабельной)
+        const clickPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        clickPath.setAttribute('d', pathD);
+        clickPath.setAttribute('stroke', 'transparent');
+        clickPath.setAttribute('stroke-width', '15');
+        clickPath.setAttribute('fill', 'none');
+        if (game.user.isGM && !isTemp) {
+            clickPath.setAttribute('class', 'connection-svg-path');
+            clickPath.setAttribute('data-conn-id', connData.id);
+        }
+        g.appendChild(clickPath);
+
         const dot1 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
         dot1.setAttribute('cx', x1);
         dot1.setAttribute('cy', y1);
         dot1.setAttribute('r', '4');
         dot1.setAttribute('fill', color);
+        if (game.user.isGM && !isTemp) {
+            dot1.setAttribute('class', 'conn-endpoint-svg');
+            dot1.setAttribute('data-conn-id', connData.id);
+            dot1.setAttribute('data-end', 'from');
+        }
         g.appendChild(dot1);
         
         if (!connData.arrow || isTemp) {
@@ -1344,16 +1799,78 @@ class MindMapEditor extends Application {
             dot2.setAttribute('cy', y2);
             dot2.setAttribute('r', '4');
             dot2.setAttribute('fill', color);
+            if (game.user.isGM && !isTemp) {
+                dot2.setAttribute('class', 'conn-endpoint-svg');
+                dot2.setAttribute('data-conn-id', connData.id);
+                dot2.setAttribute('data-end', 'to');
+            }
             g.appendChild(dot2);
+        } else {
+            // Даже если есть стрелка, добавим невидимую точку для драг-н-дропа
+            const invisDot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            invisDot.setAttribute('cx', x2);
+            invisDot.setAttribute('cy', y2);
+            invisDot.setAttribute('r', '4');
+            invisDot.setAttribute('fill', 'transparent');
+            if (game.user.isGM && !isTemp) {
+                invisDot.setAttribute('class', 'conn-endpoint-svg');
+                invisDot.setAttribute('data-conn-id', connData.id);
+                invisDot.setAttribute('data-end', 'to');
+            }
+            g.appendChild(invisDot);
         }
 
         this.svgLayer.appendChild(g);
 
-        if (!isTemp) {
-            const hasText = !!connData.text;
-            const handle = $(`<div class="connection-handle ${hasText ? 'has-text' : ''}" data-id="${connData.id}"></div>`);
-            handle.css({ left: posx, top: posy });
-            if (hasText) handle.text(connData.text);
+        // Условие скрытия блока: если это ветка И у нее нет текста И нет заметок, то блок HTML не создаем!
+        const isBranch = this.mapData.connections.some(x => x.id === connData.from) || this.mapData.connections.some(x => x.id === connData.to);
+        const shouldHideHTML = isBranch && !connData.text && !connData.hasNotes;
+
+        if (!isTemp && !shouldHideHTML) {
+            let handleHtml = '';
+            const gmHiddenClass = (game.user.isGM && (connData.hidden || isConnFullyHidden)) ? 'gm-hidden-item' : '';
+            if (game.user.isGM) {
+                handleHtml = `
+                <div class="connection-handle gm-handle ${gmHiddenClass}" data-id="${connData.id}" style="left: ${posx}px; top: ${posy}px;">
+                    <div class="conn-inner">
+                        <div class="conn-top-row">
+                            <div class="conn-part-text conn-settings-btn" title="Shift+Клик - Новая ветка, Даблклик - Настройки">${connData.text || '<i class="fas fa-link"></i>'}</div>
+                        </div>
+                        <div class="conn-bottom-row">
+                            <div class="conn-part-btn conn-vis-toggle ${connData.hidden ? 'active' : ''}" data-id="${connData.id}" title="Видимость">
+                                <i class="fas ${connData.hidden ? 'fa-eye-slash' : 'fa-eye'}"></i>
+                            </div>
+                            <div class="conn-part-btn conn-lock-toggle ${connData.pinned ? 'active' : ''}" data-id="${connData.id}" title="Закрепить позицию (Булавка)">
+                                <i class="fas fa-thumbtack"></i>
+                            </div>
+                            <div class="conn-part-btn conn-move-handle ${connData.pinned ? '' : 'disabled'}" data-id="${connData.id}" title="Переместить (требуется булавка)">
+                                <i class="fas fa-arrows-alt"></i>
+                            </div>
+                        </div>
+                    </div>
+                    ${connData.hasNotes ? `<div class="connection-notes-wrapper">${this._renderNotesHTML(connData)}</div>` : ''}
+                </div>`;
+            } else {
+                if (connData.text) {
+                    handleHtml = `
+                    <div class="connection-handle player-handle" data-id="${connData.id}" style="left: ${posx}px; top: ${posy}px;">
+                        <div class="conn-inner">
+                            <div class="conn-top-row">
+                                <div class="conn-part-text">${connData.text}</div>
+                            </div>
+                        </div>
+                        ${connData.hasNotes ? `<div class="connection-notes-wrapper">${this._renderNotesHTML(connData)}</div>` : ''}
+                    </div>`;
+                } else {
+                    handleHtml = `
+                    <div class="connection-handle player-handle empty-handle" data-id="${connData.id}" style="left: ${posx}px; top: ${posy}px;">
+                        <div class="conn-inner"></div>
+                        ${connData.hasNotes ? `<div class="connection-notes-wrapper">${this._renderNotesHTML(connData)}</div>` : ''}
+                    </div>`;
+                }
+            }
+            
+            const handle = $(handleHtml);
             this.connectionLayer.append(handle);
         }
 
@@ -1363,10 +1880,24 @@ class MindMapEditor extends Application {
     /* --- Interaction Events --- */
 
     _onNodeMouseDown(e) {
+        if (!game.user.isGM) {
+            if (e.button === 2) {
+                this.rmbStartNode = $(e.currentTarget).data('id');
+                this.rmbStartPos = { x: e.clientX, y: e.clientY };
+            }
+            return;
+        }
+
         e.stopPropagation(); 
         const el = $(e.currentTarget);
         const id = el.data('id');
+        const node = this.mapData.nodes.find(n => n.id === id);
         
+        if ($(e.target).closest('.node-control-btn, .entity-notes').length) return; 
+
+        // Игнорируем нажатие, если это картинка (чтобы HTML5 dragstart мог вытащить портрет на сцену)
+        if (e.target.tagName === 'IMG' && node.uuid) return;
+
         this.isDraggingNode = false;
 
         if (e.button === 2) {
@@ -1375,7 +1906,6 @@ class MindMapEditor extends Application {
             return this._onContainerMouseDown(e);
         }
 
-        const node = this.mapData.nodes.find(n => n.id === id);
         const pos = this._getCanvasCoords(e);
 
         if (e.shiftKey) {
@@ -1397,17 +1927,20 @@ class MindMapEditor extends Application {
         
         this._renderSelection();
 
-        if (e.target.tagName === 'IMG' && node.uuid) return;
-
-        this.draggingNodes = new Set(this.selectedNodeIds);
+        this.draggingNodes = new Set();
         this.dragOffsets = {};
-        this.draggingNodes.forEach(nodeId => {
+        this.selectedNodeIds.forEach(nodeId => {
             const n = this.mapData.nodes.find(x => x.id === nodeId);
-            if (n) this.dragOffsets[nodeId] = { x: pos.x - n.x, y: pos.y - n.y };
+            if (n) {
+                this.draggingNodes.add(nodeId);
+                this.dragOffsets[nodeId] = { x: pos.x - n.x, y: pos.y - n.y };
+            }
         });
     }
 
     _onConnectionMouseDown(e) {
+        if (!game.user.isGM) return;
+
         if (e.shiftKey) {
              e.stopPropagation();
              e.preventDefault();
@@ -1424,6 +1957,7 @@ class MindMapEditor extends Application {
         e.stopPropagation();
         const uuid = $(e.currentTarget).data('uuid');
         if (uuid) fromUuid(uuid).then(doc => {
+            if (!doc) return;
             if (doc.documentName === "JournalEntry" || doc.documentName === "Item" || doc.documentName === "Actor") {
                 doc.sheet.render(true, { editable: false });
             } else if (doc.documentName === "Scene") doc.view();
@@ -1431,21 +1965,20 @@ class MindMapEditor extends Application {
         });
     }
 
-    _onGroupCollapseToggle(e) {
+    _onGroupVisibilityToggle(e) {
         e.preventDefault();
         e.stopPropagation();
         const groupEl = $(e.currentTarget).closest('.mindmap-group');
         const groupId = groupEl.data('id');
         const group = this.mapData.groups.find(g => g.id === groupId);
         if (group) {
-            group.collapsed = !group.collapsed; 
+            group.hidden = !group.hidden;
             MindMapData.updateMap(this.mapId, this.mapData);
-            this._renderGraph();
         }
     }
     
     _onGroupHandleMouseDown(e) {
-        if ($(e.target).closest('.group-btn').length) return; // Игнорируем клики по кнопкам управления полем
+        if ($(e.target).closest('.group-btn').length) return; 
 
         e.stopPropagation();
         const groupEl = $(e.currentTarget).closest('.mindmap-group');
@@ -1453,16 +1986,18 @@ class MindMapEditor extends Application {
         const group = this.mapData.groups.find(g => g.id === groupId);
         if (!group) return;
         
+        if (!game.user.isGM) return;
+        
         this.draggingGroup = group;
         const coords = this._getCanvasCoords(e);
         this.groupDragStart = coords;
         
+        const gHeight = group.height;
         this.draggingGroupNodes = [];
-        // Все объекты автоматически прилипают к полю, в котором находятся
         (this.mapData.nodes || []).forEach(node => {
-            const center = { x: node.x + 80, y: node.y + 25 }; 
+            const center = { x: node.x + (node.width || 160)/2, y: node.y + (node.height || 50)/2 }; 
             if (center.x >= group.x && center.x <= group.x + group.width &&
-                center.y >= group.y && center.y <= group.y + group.height) {
+                center.y >= group.y && center.y <= group.y + gHeight) {
                 this.draggingGroupNodes.push(node);
             }
         });
@@ -1471,14 +2006,30 @@ class MindMapEditor extends Application {
     _onGroupResizeMouseDown(e) {
         e.stopPropagation();
         const groupEl = $(e.currentTarget).closest('.mindmap-group');
-        if (groupEl.hasClass('collapsed')) return;
         const groupId = groupEl.data('id');
         const group = this.mapData.groups.find(g => g.id === groupId);
         if (!group) return;
         
+        if (!game.user.isGM) return;
+
         this.resizingGroup = group;
         const coords = this._getCanvasCoords(e);
         this.groupResizeStart = { w: group.width, h: group.height, x: coords.x, y: coords.y };
+    }
+
+    _onNodeResizeMouseDown(e) {
+        e.stopPropagation();
+        const nodeEl = $(e.currentTarget).closest('.mindmap-node');
+        if (nodeEl.length === 0) return;
+        const nodeId = nodeEl.data('id');
+        const node = this.mapData.nodes.find(n => n.id === nodeId);
+        if (!node) return;
+        
+        if (!game.user.isGM) return;
+
+        this.resizingNode = node;
+        const coords = this._getCanvasCoords(e);
+        this.nodeResizeStart = { w: nodeEl.outerWidth(), h: nodeEl.outerHeight(), x: coords.x, y: coords.y };
     }
 
     _onMouseMove(e) {
@@ -1548,6 +2099,29 @@ class MindMapEditor extends Application {
             gEl.css({ width: this.resizingGroup.width, height: this.resizingGroup.height });
         }
 
+        if (this.resizingNode) {
+            const dx = pos.x - this.nodeResizeStart.x;
+            const dy = pos.y - this.nodeResizeStart.y;
+            
+            this.resizingNode.width = Math.max(50, this.nodeResizeStart.w + dx);
+            this.resizingNode.height = Math.max(30, this.nodeResizeStart.h + dy);
+            
+            const nEl = this.nodesLayer.find(`[data-id="${this.resizingNode.id}"]`);
+            nEl.css({ width: this.resizingNode.width, height: this.resizingNode.height });
+            this._rerenderLinesOnly();
+        }
+
+        // Логика перемещения маркера связи
+        if (this.draggingConnection) {
+            const c = this.mapData.connections.find(x => x.id === this.draggingConnection);
+            if (c) {
+                c.cx = pos.x;
+                c.cy = pos.y;
+                c.pinned = true; 
+                this._rerenderLinesOnly();
+            }
+        }
+
         if (this.connectingSource) {
             if (this.tempLine) this.tempLine.remove();
             const srcBounds = this._getEntityBounds(this.connectingSource);
@@ -1579,9 +2153,11 @@ class MindMapEditor extends Application {
             this.isDraggingNode = false;
         }
         
-        if (this.draggingGroup || this.resizingGroup) {
+        if (this.draggingGroup || this.resizingGroup || this.resizingNode || this.draggingConnection) {
             this.draggingGroup = null;
             this.resizingGroup = null;
+            this.resizingNode = null;
+            this.draggingConnection = null;
             this.draggingGroupNodes = [];
             MindMapData.updateMap(this.mapId, this.mapData); 
         }
@@ -1592,27 +2168,45 @@ class MindMapEditor extends Application {
             
             const targetNode = $(document.elementFromPoint(e.clientX, e.clientY)).closest('.mindmap-node');
             const targetConn = $(document.elementFromPoint(e.clientX, e.clientY)).closest('.connection-handle');
+            const targetGroup = $(document.elementFromPoint(e.clientX, e.clientY)).closest('.mindmap-group');
+            const targetPath = $(document.elementFromPoint(e.clientX, e.clientY)).closest('.connection-svg-path');
             
             let tid = null;
             if (targetNode.length) tid = targetNode.data('id');
             else if (targetConn.length) tid = targetConn.data('id');
+            else if (targetGroup.length) tid = targetGroup.data('id');
+            else if (targetPath.length) tid = targetPath.attr('data-conn-id');
             
             if (tid && tid !== this.connectingSource) {
-                if (!this.mapData.connections) this.mapData.connections = [];
-                this.mapData.connections.push({ 
-                    id: foundry.utils.randomID(),
-                    from: this.connectingSource, 
-                    to: tid, 
-                    color: "#aaaaaa",
-                    text: "",
-                    style: this.defaultLineStyle,
-                    strokeType: 'solid',
-                    arrow: false
-                });
-                MindMapData.updateMap(this.mapId, this.mapData);
-                this._renderGraph();
+                if (this.reconnecting) {
+                    // Восстанавливаем оторванную связь с новым концом
+                    let restored = this.reconnecting.connData;
+                    if (this.reconnecting.end === 'to') restored.to = tid;
+                    else restored.from = tid;
+                    this.mapData.connections.push(restored);
+                } else {
+                    // Создаем совершенно новую связь
+                    if (!this.mapData.connections) this.mapData.connections = [];
+                    this.mapData.connections.push({ 
+                        id: foundry.utils.randomID(),
+                        from: this.connectingSource, 
+                        to: tid, 
+                        color: "#aaaaaa",
+                        text: "",
+                        style: this.defaultLineStyle,
+                        strokeType: 'solid',
+                        arrow: false,
+                        hidden: false
+                    });
+                }
             }
+            // Если отпустили связь на пустое место (ни один tid не найден) И мы сейчас тянули оторванный конец
+            // Мы просто ничего не сохраняем (она была временно удалена, так что связь остается разорванной).
+
+            this.reconnecting = null;
             this.connectingSource = null;
+            MindMapData.updateMap(this.mapId, this.mapData);
+            this._renderGraph();
         }
     }
 
@@ -1621,7 +2215,10 @@ class MindMapEditor extends Application {
         if (!node) return;
         if (node.type === 'map' && node.targetId) {
             const maps = MindMapData.getMaps();
-            if (maps[node.targetId]) this._switchMap(node.targetId);
+            if (maps[node.targetId]) {
+                if (!game.user.isGM && maps[node.targetId].hidden) return ui.notifications.warn(game.i18n.localize("SIMPLE_MINDMAP.MAP_HIDDEN_GM"));
+                this._switchMap(node.targetId);
+            }
             else ui.notifications.warn(game.i18n.localize("SIMPLE_MINDMAP.NOTIFICATION_MAP_DELETED"));
             return;
         }
@@ -1659,6 +2256,18 @@ class MindMapEditor extends Application {
         this._renderSelection();
     }
 
+    _onGlobalMousedown(e) {
+        // Очищаем выделение, если клик был вне окна MindMap
+        if (this.element && !$(e.target).closest(this.element).length) {
+            if ($(e.target).closest('.dialog, .filepicker, .tox').length) return; // Игнорируем клики по модалкам Фаундри
+            
+            if (this.selectedNodeIds.size > 0) {
+                this.selectedNodeIds.clear();
+                this._renderSelection();
+            }
+        }
+    }
+
     _rerenderLinesOnly() {
         while (this.svgLayer.firstChild) this.svgLayer.removeChild(this.svgLayer.firstChild);
         this.connectionLayer.empty(); 
@@ -1666,27 +2275,20 @@ class MindMapEditor extends Application {
         let defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
         this.svgLayer.appendChild(defs);
 
-        const hiddenNodes = new Set();
-        const hiddenNodeToGroup = new Map();
-
-        (this.mapData.groups || []).forEach(g => {
-            if (g.collapsed) {
-                (this.mapData.nodes || []).forEach(n => {
-                    const cx = n.x + 80; 
-                    const cy = n.y + 25;
-                    if (cx >= g.x && cx <= g.x + g.width && cy >= g.y && cy <= g.y + g.height) {
-                        hiddenNodes.add(n.id);
-                        hiddenNodeToGroup.set(n.id, g.id);
-                    }
-                });
-            }
-        });
+        const isGM = game.user.isGM;
         
         (this.mapData.connections || []).forEach(c => {
-            let fromId = hiddenNodeToGroup.has(c.from) ? hiddenNodeToGroup.get(c.from) : c.from;
-            let toId = hiddenNodeToGroup.has(c.to) ? hiddenNodeToGroup.get(c.to) : c.to;
+            let fromId = c.from;
+            let toId = c.to;
 
             if (fromId === toId) return;
+
+            const isConnExplicitlyHidden = c.hidden;
+            const fromIsHidden = this.mapData.nodes.some(n=>n.id===c.from && n.hidden) || this.mapData.groups.some(g=>g.id===c.from && g.hidden);
+            const toIsHidden = this.mapData.nodes.some(n=>n.id===c.to && n.hidden) || this.mapData.groups.some(g=>g.id===c.to && g.hidden);
+            const isConnFullyHidden = isConnExplicitlyHidden || fromIsHidden || toIsHidden;
+
+            if (!isGM && isConnFullyHidden) return;
 
             const srcBounds = this._getEntityBounds(fromId);
             const dstBounds = this._getEntityBounds(toId);
@@ -1695,7 +2297,8 @@ class MindMapEditor extends Application {
             const validDst = this.mapData.nodes.some(n=>n.id===toId) || this.mapData.groups.some(g=>g.id===toId) || this.mapData.connections.some(x=>x.id===toId);
 
             if (validSrc && validDst) {
-                 this._drawConnection(srcBounds, dstBounds, c);
+                 const g = this._drawConnection(srcBounds, dstBounds, c, false, isConnFullyHidden);
+                 if (isGM && isConnFullyHidden) g.classList.add('gm-hidden-item');
             }
         });
     }
@@ -1704,6 +2307,11 @@ class MindMapEditor extends Application {
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
         if (e.key === "Delete") {
+            if (!game.user.isGM) return;
+            
+            // Защита: удаляем только если мышка находится над окном модуля
+            if (!this.isHovered) return;
+
             if (this.selectedNodeIds.size > 0) {
                 const ids = Array.from(this.selectedNodeIds);
                 this.mapData.nodes = this.mapData.nodes.filter(n => !this.selectedNodeIds.has(n.id));
@@ -1723,14 +2331,16 @@ class MindMapEditor extends Application {
                 }
 
                 this.selectedNodeIds.clear();
-                this._renderGraph();
                 MindMapData.updateMap(this.mapId, this.mapData);
+                this._renderGraph();
             }
         }
     }
 
     _onConnectionDblClick(e, target) {
         e.stopPropagation(); e.preventDefault();
+        if (!game.user.isGM) return;
+
         const connId = target.data('id');
         const connection = this.mapData.connections.find(c => c.id === connId);
         if (!connection) return;
@@ -1738,49 +2348,79 @@ class MindMapEditor extends Application {
         const currentStyle = connection.style || 'curve';
         const currentStroke = connection.strokeType || 'solid';
         const isArrow = connection.arrow === true;
+        const isHidden = connection.hidden === true;
+        const hasNotes = connection.hasNotes === true;
+        const isPinned = connection.pinned === true;
 
         new Dialog({
-            title: game.i18n.localize("SIMPLE_MINDMAP.DIALOG_CONN_EDIT_TITLE"),
+            title: game.i18n.localize("SIMPLE_MINDMAP.DIALOG_CONN_EDIT_TITLE") || "Настройки связи",
             content: `<div class="mm-dialog-content">
-                    <div class="mm-dialog-row"><label>${game.i18n.localize("SIMPLE_MINDMAP.LABEL_TEXT")}</label><input type="text" id="conn-text" value="${connection.text || ''}" placeholder="${game.i18n.localize("SIMPLE_MINDMAP.PLACEHOLDER_CAPTION")}"></div>
-                    <div class="mm-dialog-row"><label>${game.i18n.localize("SIMPLE_MINDMAP.LABEL_COLOR")}</label><input type="color" id="conn-color" value="${connection.color || '#aaaaaa'}" style="height: 30px; padding: 0;"></div>
+                    <div class="mm-dialog-row"><label>${game.i18n.localize("SIMPLE_MINDMAP.LABEL_TEXT") || "Текст"}</label><input type="text" id="conn-text" value="${connection.text || ''}" placeholder="${game.i18n.localize("SIMPLE_MINDMAP.PLACEHOLDER_CAPTION") || "Подпись..."}"></div>
+                    <div class="mm-dialog-row"><label>${game.i18n.localize("SIMPLE_MINDMAP.LABEL_COLOR") || "Цвет"}</label><input type="color" id="conn-color" value="${connection.color || '#aaaaaa'}" style="height: 30px; padding: 0;"></div>
                     <div class="mm-dialog-row">
-                        <label>${game.i18n.localize("SIMPLE_MINDMAP.LABEL_SHAPE")}</label>
+                        <label>${game.i18n.localize("SIMPLE_MINDMAP.LABEL_SHAPE") || "Форма"}</label>
                         <select id="conn-style">
-                            <option value="curve" ${currentStyle === 'curve' ? 'selected' : ''}>${game.i18n.localize("SIMPLE_MINDMAP.LINE_STYLE_CURVE")}</option>
-                            <option value="straight" ${currentStyle === 'straight' ? 'selected' : ''}>${game.i18n.localize("SIMPLE_MINDMAP.LINE_STYLE_STRAIGHT")}</option>
-                            <option value="orthogonal" ${currentStyle === 'orthogonal' ? 'selected' : ''}>${game.i18n.localize("SIMPLE_MINDMAP.LINE_STYLE_ORTHOGONAL")}</option>
+                            <option value="curve" ${currentStyle === 'curve' ? 'selected' : ''}>${game.i18n.localize("SIMPLE_MINDMAP.LINE_STYLE_CURVE") || "Кривая"}</option>
+                            <option value="straight" ${currentStyle === 'straight' ? 'selected' : ''}>${game.i18n.localize("SIMPLE_MINDMAP.LINE_STYLE_STRAIGHT") || "Прямая"}</option>
+                            <option value="orthogonal" ${currentStyle === 'orthogonal' ? 'selected' : ''}>${game.i18n.localize("SIMPLE_MINDMAP.LINE_STYLE_ORTHOGONAL") || "Ломаная"}</option>
                         </select>
                     </div>
                     <div class="mm-dialog-row">
-                        <label>${game.i18n.localize("SIMPLE_MINDMAP.LABEL_TYPE")}</label>
+                        <label>${game.i18n.localize("SIMPLE_MINDMAP.LABEL_TYPE") || "Тип"}</label>
                         <select id="conn-stroke">
-                            <option value="solid" ${currentStroke === 'solid' ? 'selected' : ''}>Solid</option>
-                            <option value="dashed" ${currentStroke === 'dashed' ? 'selected' : ''}>Dashed</option>
-                            <option value="dotted" ${currentStroke === 'dotted' ? 'selected' : ''}>Dotted</option>
+                            <option value="solid" ${currentStroke === 'solid' ? 'selected' : ''}>Сплошная</option>
+                            <option value="dashed" ${currentStroke === 'dashed' ? 'selected' : ''}>Пунктир</option>
+                            <option value="dotted" ${currentStroke === 'dotted' ? 'selected' : ''}>Точки</option>
                         </select>
                     </div>
                     <div class="mm-dialog-row">
-                        <label>${game.i18n.localize("SIMPLE_MINDMAP.LABEL_ARROW")}</label>
+                        <label>${game.i18n.localize("SIMPLE_MINDMAP.LABEL_ARROW") || "Стрелка"}</label>
                         <input type="checkbox" id="conn-arrow" ${isArrow ? 'checked' : ''}>
                     </div>
-                </div>`,
+                    <div class="mm-dialog-row">
+                        <label>${game.i18n.localize("SIMPLE_MINDMAP.LABEL_PINNED") || "Закрепить (Замок)"}</label>
+                        <input type="checkbox" id="conn-pinned" ${isPinned ? 'checked' : ''}>
+                    </div>
+                    <div class="mm-dialog-row">
+                        <label>${game.i18n.localize("SIMPLE_MINDMAP.LABEL_ENABLE_NOTES") || "Включить Заметки"}</label>
+                        <input type="checkbox" id="conn-has-notes" ${hasNotes ? 'checked' : ''}>
+                    </div>
+                    ${game.user.isGM ? `
+                    <div class="mm-dialog-row">
+                        <label>${game.i18n.localize("SIMPLE_MINDMAP.LABEL_HIDDEN") || "Скрыть от игроков"}</label>
+                        <input type="checkbox" id="conn-hidden" ${isHidden ? 'checked' : ''}>
+                    </div>` : ''}
+                </div>
+            `,
             buttons: {
                 save: {
-                    label: game.i18n.localize("SIMPLE_MINDMAP.BUTTON_SAVE"),
-                    icon: '<i class="fas fa-save"></i>',
+                    label: game.i18n.localize("SIMPLE_MINDMAP.BUTTON_SAVE") || "Сохранить",
+                    icon: '<i class="fas fa-check"></i>',
                     callback: (html) => {
                         connection.text = html.find('#conn-text').val();
                         connection.color = html.find('#conn-color').val();
                         connection.style = html.find('#conn-style').val();
                         connection.strokeType = html.find('#conn-stroke').val();
                         connection.arrow = html.find('#conn-arrow').is(':checked');
+                        connection.hasNotes = html.find('#conn-has-notes').is(':checked');
+                        
+                        const newPinned = html.find('#conn-pinned').is(':checked');
+                        if (newPinned && !connection.pinned) {
+                            const handle = this.connectionLayer.find(`[data-id="${connId}"]`);
+                            if (handle.length) {
+                                connection.cx = parseFloat(handle.css('left'));
+                                connection.cy = parseFloat(handle.css('top'));
+                            }
+                        }
+                        connection.pinned = newPinned;
+
+                        if (game.user.isGM) connection.hidden = html.find('#conn-hidden').is(':checked');
                         MindMapData.updateMap(this.mapId, this.mapData);
                         this._renderGraph();
                     }
                 },
                 delete: {
-                    label: game.i18n.localize("SIMPLE_MINDMAP.BUTTON_DELETE"),
+                    label: game.i18n.localize("SIMPLE_MINDMAP.BUTTON_DELETE") || "Удалить",
                     icon: '<i class="fas fa-trash"></i>',
                     callback: () => {
                         this.mapData.connections = this.mapData.connections.filter(c => c.id !== connId);
@@ -1794,6 +2434,8 @@ class MindMapEditor extends Application {
 
     _onNodeDblClick(e, target) {
         e.stopPropagation(); e.preventDefault();
+        if (!game.user.isGM) return;
+
         const nodeId = target.data('id');
         const node = this.mapData.nodes.find(n => n.id === nodeId);
         if (!node) return;
@@ -1806,59 +2448,86 @@ class MindMapEditor extends Application {
         const comment = node.comment || "";
         const link = node.commentLink || "";
         const linkName = node.commentLinkName || "";
-        const bgColor = node.backgroundColor || "#2b2b2b";
+        const bgColor = node.backgroundColor || "";
         const isTooltip = node.showTooltip === true;
+        const isHidden = node.hidden === true;
+        const hasNotes = node.hasNotes === true;
 
         const dialogContent = `
             <div class="mm-dialog-content">
                 <div class="mm-dialog-row">
-                    <label>Name</label>
+                    <label>Название</label>
                     <input type="text" id="node-name" value="${node.name}">
                 </div>
                 <div class="mm-dialog-row">
-                    <label>Background</label>
-                    <input type="color" id="node-bg" value="${bgColor}">
+                    <label>Цвет фона</label>
+                    <div style="display:flex; flex:1; gap:5px; align-items:center;">
+                        <input type="color" id="node-bg" value="${bgColor === '' ? '#2b2b2b' : bgColor}" style="flex:1;">
+                        <label style="flex: 0 0 auto; display:flex; align-items:center; gap:3px; font-weight: normal; font-size: 12px;">
+                            <input type="checkbox" id="node-bg-default" ${bgColor === '' ? 'checked' : ''}>
+                            По умолчанию
+                        </label>
+                    </div>
                 </div>
                 <div class="mm-dialog-row" style="align-items: flex-start;">
-                    <label>Comment</label>
+                    <label>Комментарий</label>
                     <textarea id="node-comment" rows="3" style="resize:vertical;">${comment}</textarea>
                 </div>
                 <div class="mm-dialog-row">
-                    <label>${game.i18n.localize("SIMPLE_MINDMAP.LABEL_TOOLTIP") || "Tooltip"}</label>
+                    <label>${game.i18n.localize("SIMPLE_MINDMAP.LABEL_TOOLTIP") || "Текст как подсказка"}</label>
                     <input type="checkbox" id="node-tooltip" ${isTooltip ? 'checked' : ''}>
                 </div>
                 <div class="mm-dialog-row">
-                    <label>Link (UUID)</label>
-                    <input type="text" id="node-link" value="${link}" placeholder="Paste UUID here">
+                    <label>${game.i18n.localize("SIMPLE_MINDMAP.LABEL_ENABLE_NOTES") || "Включить Заметки"}</label>
+                    <input type="checkbox" id="node-has-notes" ${hasNotes ? 'checked' : ''}>
+                </div>
+                ${game.user.isGM ? `
+                <div class="mm-dialog-row">
+                    <label>${game.i18n.localize("SIMPLE_MINDMAP.LABEL_HIDDEN") || "Скрыть от игроков"}</label>
+                    <input type="checkbox" id="node-hidden" ${isHidden ? 'checked' : ''}>
+                </div>` : ''}
+                <div class="mm-dialog-row">
+                    <label>UUID ссылки</label>
+                    <input type="text" id="node-link" value="${link}" placeholder="Вставьте UUID...">
                     <input type="hidden" id="node-link-name" value="${linkName}">
                 </div>
                 <div class="drop-zone" id="drop-zone-link">
-                    Drag & Drop Entity Here to Link
+                    Бросьте сюда объект для ссылки
                 </div>
             </div>
         `;
 
-        const d = new Dialog({
-            title: "Node Settings",
+        new Dialog({
+            title: "Настройки Карточки",
             content: dialogContent,
             buttons: {
                 save: {
-                    label: "Save",
+                    label: "Сохранить",
                     icon: '<i class="fas fa-check"></i>',
                     callback: (html) => {
                         node.name = html.find('#node-name').val();
-                        node.backgroundColor = html.find('#node-bg').val();
+                        
+                        if (html.find('#node-bg-default').is(':checked')) {
+                            node.backgroundColor = "";
+                        } else {
+                            node.backgroundColor = html.find('#node-bg').val();
+                        }
+                        
                         node.comment = html.find('#node-comment').val();
                         node.showTooltip = html.find('#node-tooltip').is(':checked');
+                        node.hasNotes = html.find('#node-has-notes').is(':checked');
                         node.commentLink = html.find('#node-link').val();
                         node.commentLinkName = html.find('#node-link-name').val();
+                        if (game.user.isGM) {
+                            node.hidden = html.find('#node-hidden').is(':checked');
+                        }
                         
                         MindMapData.updateMap(this.mapId, this.mapData);
                         this._renderGraph();
                     }
                 },
                 delete: {
-                    label: "Delete Node",
+                    label: "Удалить Узел",
                     icon: '<i class="fas fa-trash"></i>',
                     callback: () => {
                         this.mapData.nodes = this.mapData.nodes.filter(n => n.id !== nodeId);
@@ -1884,7 +2553,7 @@ class MindMapEditor extends Application {
                             html.find('#node-link').val(data.uuid);
                             const doc = await fromUuid(data.uuid);
                             if(doc) {
-                                dropZone.innerText = `Linked: ${doc.name}`;
+                                dropZone.innerText = `Связано: ${doc.name}`;
                                 html.find('#node-link-name').val(doc.name);
                             }
                         }
@@ -1895,18 +2564,31 @@ class MindMapEditor extends Application {
     }
 
     _onTextNodeDblClick(e, target) {
+        if (!game.user.isGM) return;
         const nodeId = target.data('id');
         const node = this.mapData.nodes.find(n => n.id === nodeId);
         const style = node.style || { fontSize: 16, fontFamily: 'Signika', color: '#ffffff' };
+        const isHidden = node.hidden === true;
+        const hasNotes = node.hasNotes === true;
+        const bgColor = node.backgroundColor || "transparent";
 
         new Dialog({
-            title: "Edit Text Node",
+            title: "Настройки Текста",
             content: `
                 <div class="mm-dialog-content">
-                    <div class="mm-dialog-row"><label>Text</label><input type="text" id="text-content" value="${node.name}"></div>
-                    <div class="mm-dialog-row"><label>Size (px)</label><input type="number" id="text-size" value="${style.fontSize}"></div>
-                    <div class="mm-dialog-row"><label>Color</label><input type="color" id="text-color" value="${style.color}"></div>
-                    <div class="mm-dialog-row"><label>Font</label>
+                    <div class="mm-dialog-row"><label>Текст</label><input type="text" id="text-content" value="${node.name}"></div>
+                    <div class="mm-dialog-row"><label>Размер (px)</label><input type="number" id="text-size" value="${style.fontSize}"></div>
+                    <div class="mm-dialog-row"><label>Цвет текста</label><input type="color" id="text-color" value="${style.color}"></div>
+                    <div class="mm-dialog-row"><label>Цвет фона</label>
+                        <div style="display:flex; flex:1; gap:5px; align-items:center;">
+                            <input type="color" id="text-bg-color" value="${bgColor === 'transparent' ? '#000000' : bgColor}" style="flex:1;">
+                            <label style="flex: 0 0 auto; display:flex; align-items:center; gap:3px;">
+                                <input type="checkbox" id="text-bg-transparent" ${bgColor === 'transparent' ? 'checked' : ''}>
+                                Прозр.
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mm-dialog-row"><label>Шрифт</label>
                         <select id="text-font">
                             <option value="Signika" ${style.fontFamily === 'Signika' ? 'selected' : ''}>Signika</option>
                             <option value="Arial" ${style.fontFamily === 'Arial' ? 'selected' : ''}>Arial</option>
@@ -1915,11 +2597,20 @@ class MindMapEditor extends Application {
                             <option value="Modesto Condensed" ${style.fontFamily === 'Modesto Condensed' ? 'selected' : ''}>Modesto</option>
                         </select>
                     </div>
+                    <div class="mm-dialog-row">
+                        <label>${game.i18n.localize("SIMPLE_MINDMAP.LABEL_ENABLE_NOTES") || "Включить Заметки"}</label>
+                        <input type="checkbox" id="text-has-notes" ${hasNotes ? 'checked' : ''}>
+                    </div>
+                    ${game.user.isGM ? `
+                    <div class="mm-dialog-row">
+                        <label>${game.i18n.localize("SIMPLE_MINDMAP.LABEL_HIDDEN") || "Скрыть от игроков"}</label>
+                        <input type="checkbox" id="text-hidden" ${isHidden ? 'checked' : ''}>
+                    </div>` : ''}
                 </div>
             `,
             buttons: {
                 save: {
-                    label: "Save",
+                    label: "Сохранить",
                     icon: '<i class="fas fa-check"></i>',
                     callback: (html) => {
                         node.name = html.find('#text-content').val();
@@ -1928,12 +2619,23 @@ class MindMapEditor extends Application {
                             color: html.find('#text-color').val(),
                             fontFamily: html.find('#text-font').val()
                         };
+                        
+                        if (html.find('#text-bg-transparent').is(':checked')) {
+                            node.backgroundColor = "transparent";
+                        } else {
+                            node.backgroundColor = html.find('#text-bg-color').val();
+                        }
+                        
+                        node.hasNotes = html.find('#text-has-notes').is(':checked');
+                        if (game.user.isGM) {
+                            node.hidden = html.find('#text-hidden').is(':checked');
+                        }
                         MindMapData.updateMap(this.mapId, this.mapData);
                         this._renderGraph();
                     }
                 },
                 delete: {
-                    label: "Delete",
+                    label: "Удалить",
                     icon: '<i class="fas fa-trash"></i>',
                     callback: () => {
                         this.mapData.nodes = this.mapData.nodes.filter(n => n.id !== nodeId);
@@ -1946,34 +2648,49 @@ class MindMapEditor extends Application {
     }
 
     _onGroupDblClick(e, target) {
+        if (!game.user.isGM) return;
         const groupEl = target.closest('.mindmap-group');
         const groupId = groupEl.data('id');
         const group = this.mapData.groups.find(g => g.id === groupId);
         if (!group) return;
+        const hasNotes = group.hasNotes === true;
 
         new Dialog({
-            title: "Edit Field",
+            title: "Настройки Поля",
             content: `
                 <div class="mm-dialog-content">
-                    <div class="mm-dialog-row"><label>Name</label><input type="text" id="group-name" value="${group.name}"></div>
-                    <div class="mm-dialog-row"><label>Color</label><input type="color" id="group-color" value="${group.color}"></div>
-                    <div class="mm-dialog-row"><label>Opacity</label><input type="number" id="group-alpha" value="${group.alpha}" min="0" max="1" step="0.1"></div>
+                    <div class="mm-dialog-row"><label>Название</label><input type="text" id="group-name" value="${group.name}"></div>
+                    <div class="mm-dialog-row"><label>Цвет</label><input type="color" id="group-color" value="${group.color}"></div>
+                    <div class="mm-dialog-row"><label>Прозрачность</label><input type="number" id="group-alpha" value="${group.alpha}" min="0" max="1" step="0.1"></div>
+                    <div class="mm-dialog-row">
+                        <label>${game.i18n.localize("SIMPLE_MINDMAP.LABEL_BG_IMAGE") || "Фон"}</label>
+                        <div style="display: flex; flex: 1; gap: 5px;">
+                            <input type="text" id="group-bg-image" value="${group.bgImage || ''}">
+                            ${game.user.isGM ? `<button type="button" class="file-picker" data-type="image" data-target="group-bg-image" title="Browse Files" style="flex: 0 0 30px;"><i class="fas fa-file-import fa-fw"></i></button>` : ''}
+                        </div>
+                    </div>
+                    <div class="mm-dialog-row">
+                        <label>${game.i18n.localize("SIMPLE_MINDMAP.LABEL_ENABLE_NOTES") || "Включить Заметки"}</label>
+                        <input type="checkbox" id="group-has-notes" ${hasNotes ? 'checked' : ''}>
+                    </div>
                 </div>
             `,
             buttons: {
                 save: {
-                    label: "Save",
+                    label: "Сохранить",
                     icon: '<i class="fas fa-save"></i>',
                     callback: (html) => {
                         group.name = html.find('#group-name').val();
                         group.color = html.find('#group-color').val();
                         group.alpha = parseFloat(html.find('#group-alpha').val());
+                        group.bgImage = html.find('#group-bg-image').val();
+                        group.hasNotes = html.find('#group-has-notes').is(':checked');
                         MindMapData.updateMap(this.mapId, this.mapData);
                         this._renderGraph();
                     }
                 },
                 delete: {
-                    label: "Delete",
+                    label: "Удалить",
                     icon: '<i class="fas fa-trash"></i>',
                     callback: () => {
                         this.mapData.groups = this.mapData.groups.filter(g => g.id !== groupId);
@@ -1981,8 +2698,111 @@ class MindMapEditor extends Application {
                         this._renderGraph();
                     }
                 }
-            }, default: "save"
+            }, 
+            default: "save",
+            render: (html) => {
+                html.find('.file-picker').click(ev => {
+                    ev.preventDefault();
+                    const target = $(ev.currentTarget).data('target');
+                    new FilePicker({
+                        type: "image",
+                        callback: path => { html.find(`#${target}`).val(path); }
+                    }).render(true);
+                });
+            }
         }).render(true);
+    }
+
+    async _onAddNote(e) {
+        e.stopPropagation();
+        if (!game.user.isGM) return; // Раз игроки больше не редактируют
+
+        const btn = $(e.currentTarget);
+        const container = btn.closest('.entity-notes');
+        const id = container.data('id');
+        const input = container.find('.new-note-input').val().trim();
+        
+        const cb = container.find('.is-gm-note-cb');
+        const isGmNote = cb.length ? cb.is(':checked') : false;
+        
+        if (!input) return;
+        
+        const newNote = {
+            id: foundry.utils.randomID(),
+            text: input,
+            author: game.user.name,
+            userId: game.user.id,
+            isGM: isGmNote
+        };
+        
+        let entity = (this.mapData.nodes || []).find(n => n.id === id) || 
+                     (this.mapData.groups || []).find(g => g.id === id) || 
+                     (this.mapData.connections || []).find(c => c.id === id);
+                     
+        if (!entity) return;
+        
+        if (!entity.notes) entity.notes = [];
+        entity.notes.push(newNote);
+        
+        await MindMapData.updateMap(this.mapId, this.mapData);
+        this._renderGraph(); 
+    }
+    
+    async _onDeleteNote(e) {
+        e.stopPropagation();
+        if (!game.user.isGM) return; // Раз игроки больше не редактируют
+
+        const id = $(e.currentTarget).data('target');
+        const noteId = $(e.currentTarget).data('note');
+        
+        let entity = (this.mapData.nodes || []).find(n => n.id === id) || 
+                     (this.mapData.groups || []).find(g => g.id === id) || 
+                     (this.mapData.connections || []).find(c => c.id === id);
+                     
+        if (!entity || !entity.notes) return;
+        
+        entity.notes = entity.notes.filter(n => n.id !== noteId);
+        await MindMapData.updateMap(this.mapId, this.mapData);
+        this._renderGraph();
+    }
+
+    _onQuickVisToggle(e) {
+        e.stopPropagation();
+        if (!game.user.isGM) return;
+        const btn = $(e.currentTarget);
+        const id = btn.data('id');
+        
+        let entity = this.mapData.nodes.find(n => n.id === id) || this.mapData.connections.find(c => c.id === id);
+        if (entity) {
+            entity.hidden = !entity.hidden;
+            MindMapData.updateMap(this.mapId, this.mapData);
+            this._renderGraph();
+        }
+    }
+
+    _onConnLockToggle(e) {
+        e.stopPropagation();
+        if (!game.user.isGM) return; 
+        
+        const btn = $(e.currentTarget);
+        const id = btn.data('id');
+        
+        let entity = this.mapData.connections.find(c => c.id === id);
+        if (entity) {
+            entity.pinned = !entity.pinned;
+            if (entity.pinned) {
+                const handle = this.connectionLayer.find(`[data-id="${id}"]`);
+                if (handle.length) {
+                    entity.cx = parseFloat(handle.css('left'));
+                    entity.cy = parseFloat(handle.css('top'));
+                }
+            } else {
+                entity.cx = undefined;
+                entity.cy = undefined;
+            }
+            MindMapData.updateMap(this.mapId, this.mapData);
+            this._renderGraph();
+        }
     }
 }
 
@@ -1994,46 +2814,127 @@ async function startMindMap() {
     const maps = MindMapData.getMaps();
     const lastId = MindMapData.getLastMapId();
     const mapIds = Object.keys(maps);
-    if (lastId && maps[lastId]) new MindMapEditor(lastId).render(true);
-    else if (mapIds.length > 0) new MindMapEditor(mapIds[0]).render(true);
-    else new MindMapEditor(null).render(true);
+    let targetId = null;
+    
+    if (lastId && maps[lastId]) targetId = lastId;
+    else if (mapIds.length > 0) targetId = mapIds[0];
+
+    // Открываем редактор (Foundry сам управляет ui.windows)
+    const existing = Object.values(ui.windows).find(w => w.id === "mindmap-editor" || w instanceof MindMapEditor);
+    if (existing) {
+        existing.mapId = targetId;
+        existing._loadMapData();
+        existing._applyDefaultView();
+        existing.render(true);
+        existing.bringToTop();
+    } else {
+        new MindMapEditor(targetId).render(true);
+    }
 }
 
 Hooks.once('init', () => {
     console.log("Simple MindMap | Init");
     
     game.settings.register(MODULE_ID, SETTING_KEY, { 
-        name: game.i18n.localize("SIMPLE_MINDMAP.TITLE"), 
+        name: game.i18n.localize("SIMPLE_MINDMAP.TITLE") || "Simple MindMap", 
         scope: "world", 
-        config: false, 
+        config: false,
+        restricted: false, 
         type: Object, 
-        default: {} 
+        default: {},
+        onChange: () => {
+            for (const w of Object.values(ui.windows)) {
+                if (w.id === "mindmap-editor" || w instanceof MindMapEditor) {
+                    w._loadMapData();
+                    w.render(true);
+                }
+            }
+        }
     }); 
     
     game.settings.register(MODULE_ID, LAST_MAP_KEY, { 
-        name: game.i18n.localize("SIMPLE_MINDMAP.LAST_MAP_ID_SETTING"), 
+        name: game.i18n.localize("SIMPLE_MINDMAP.LAST_MAP_ID_SETTING") || "Last Opened Map ID", 
         scope: "client", 
         config: false, 
         type: String, 
         default: "" 
     });
 
+    game.settings.register(MODULE_ID, 'theme', {
+        name: "Тема оформления",
+        hint: "Светлая или Темная тема для холста MindMap.",
+        scope: "client",
+        config: true,
+        type: String,
+        choices: {
+            "dark": "Темная",
+            "light": "Светлая"
+        },
+        default: "dark",
+        onChange: () => {
+            for (const w of Object.values(ui.windows)) {
+                if (w.id === "mindmap-editor" || w instanceof MindMapEditor) w.render(true);
+            }
+        }
+    });
+
+    game.settings.register(MODULE_ID, 'fontFamily', {
+        name: "Шрифт интерфейса",
+        hint: "Шрифт, который будет применяться к узлам и тексту на карте.",
+        scope: "client",
+        config: true,
+        type: String,
+        choices: {
+            "Signika": "Signika",
+            "Arial": "Arial",
+            "Courier New": "Courier",
+            "Times New Roman": "Times",
+            "Modesto Condensed": "Modesto"
+        },
+        default: "Signika",
+        onChange: () => {
+            for (const w of Object.values(ui.windows)) {
+                if (w.id === "mindmap-editor" || w instanceof MindMapEditor) w.render(true);
+            }
+        }
+    });
+
+    game.settings.register(MODULE_ID, 'resetFloatingButton', {
+        name: "Вернуть кнопку в центр",
+        hint: "Поставьте галочку и сохраните, если вы потеряли плавающую кнопку MindMap (она вернётся в центр экрана).",
+        scope: "client",
+        config: true,
+        type: Boolean,
+        default: false,
+        onChange: (val) => {
+            if (val) {
+                const w = (window.innerWidth / 2) - 23;
+                const h = (window.innerHeight / 2) - 23;
+                localStorage.setItem('simple-mindmap-btn-pos', JSON.stringify({ left: w + 'px', top: h + 'px' }));
+                const btn = $('#simple-mindmap-floating-btn');
+                if (btn.length) {
+                    btn.css({ left: w + 'px', top: h + 'px', bottom: 'auto' });
+                }
+                setTimeout(() => game.settings.set(MODULE_ID, 'resetFloatingButton', false), 200);
+            }
+        }
+    });
+
     if (!$('#simple-mindmap-css').length) $('head').append(`<style id="simple-mindmap-css">${MINDMAP_CSS}</style>`);
     
-    // Экспортируем функцию для тех, кто всё равно захочет макрос
     window.SimpleMindMap = { open: startMindMap };
     window.SimpleMindMapManager = class { render(force) { startMindMap(); } };
 });
 
-/* --- Плавающая кнопка запуска (Независимая от интерфейса Foundry) --- */
-Hooks.on("ready", () => {
+Hooks.once("ready", () => {
+    // --- ПЛАВАЮЩАЯ КНОПКА ---
     if ($('#simple-mindmap-floating-btn').length === 0) {
         const title = game.i18n.localize("SIMPLE_MINDMAP.TITLE") || "Simple MindMap";
         const btn = $(`
             <div id="simple-mindmap-floating-btn" title="${title}" style="
                 position: fixed;
                 left: 15px;
-                bottom: 85px;
+                top: 85vh; /* Initial top, will be overridden by saved pos */
                 width: 46px;
                 height: 46px;
                 background: rgba(30, 30, 30, 0.85);
@@ -2048,32 +2949,94 @@ Hooks.on("ready", () => {
                 z-index: 100;
                 font-size: 22px;
                 backdrop-filter: blur(4px);
-                transition: all 0.2s ease-in-out;
+                transition: transform 0.2s ease-in-out, border-color 0.2s, color 0.2s, background 0.2s;
             ">
                 <i class="fas fa-project-diagram"></i>
             </div>
         `);
 
+        // Загрузка сохраненной позиции с защитой от вылета за границы экрана
+        const savedPosStr = localStorage.getItem('simple-mindmap-btn-pos');
+        if (savedPosStr) {
+            try {
+                const savedPos = JSON.parse(savedPosStr);
+                let left = parseInt(savedPos.left);
+                let top = parseInt(savedPos.top);
+                
+                // Защита от вылета за границы (например, при ресайзе окна)
+                if (left < 0) left = 15;
+                if (top < 0) top = 15;
+                if (left > window.innerWidth - 50) left = window.innerWidth - 60;
+                if (top > window.innerHeight - 50) top = window.innerHeight - 60;
+                
+                btn.css({ left: left + 'px', top: top + 'px', bottom: 'auto' });
+            } catch(e) { }
+        }
+
         btn.hover(
             function() { 
-                $(this).css({ 
-                    transform: 'scale(1.1) translateY(-2px)', 
-                    borderColor: '#ff6400', 
-                    color: '#fff', 
-                    background: 'rgba(50, 50, 50, 0.95)' 
-                }); 
+                if (!$(this).hasClass('dragging')) {
+                    $(this).css({ transform: 'scale(1.1) translateY(-2px)', borderColor: '#ff6400', color: '#fff', background: 'rgba(50, 50, 50, 0.95)' }); 
+                }
             },
             function() { 
-                $(this).css({ 
-                    transform: 'scale(1) translateY(0)', 
-                    borderColor: '#555', 
-                    color: '#ff6400', 
-                    background: 'rgba(30, 30, 30, 0.85)' 
-                }); 
+                if (!$(this).hasClass('dragging')) {
+                    $(this).css({ transform: 'scale(1) translateY(0)', borderColor: '#555', color: '#ff6400', background: 'rgba(30, 30, 30, 0.85)' }); 
+                }
             }
         );
 
-        btn.on('click', () => {
+        let isDragging = false;
+        let dragThresholdMet = false;
+        let startX, startY, initialLeft, initialTop;
+
+        btn.on('mousedown', (e) => {
+            if (e.button !== 0) return; // Только левый клик
+            isDragging = true;
+            dragThresholdMet = false;
+            startX = e.clientX;
+            startY = e.clientY;
+            const pos = btn.position();
+            initialLeft = pos.left;
+            initialTop = pos.top;
+
+            const onMouseMove = (ev) => {
+                if (!isDragging) return;
+                if (Math.abs(ev.clientX - startX) > 3 || Math.abs(ev.clientY - startY) > 3) {
+                    dragThresholdMet = true;
+                    btn.addClass('dragging');
+                    btn.css({ 
+                        left: initialLeft + (ev.clientX - startX), 
+                        top: initialTop + (ev.clientY - startY), 
+                        bottom: 'auto',
+                        cursor: 'grabbing',
+                        transform: 'scale(1) translateY(0)'
+                    });
+                }
+            };
+
+            const onMouseUp = (ev) => {
+                isDragging = false;
+                $(document).off('mousemove', onMouseMove);
+                $(document).off('mouseup', onMouseUp);
+                btn.removeClass('dragging');
+                btn.css('cursor', 'pointer');
+                if (dragThresholdMet) {
+                    localStorage.setItem('simple-mindmap-btn-pos', JSON.stringify({ left: btn.css('left'), top: btn.css('top') }));
+                }
+            };
+
+            $(document).on('mousemove', onMouseMove);
+            $(document).on('mouseup', onMouseUp);
+        });
+
+        btn.on('click', (e) => {
+            if (dragThresholdMet) { 
+                e.preventDefault(); 
+                e.stopPropagation();
+                dragThresholdMet = false;
+                return; 
+            }
             startMindMap();
         });
 
