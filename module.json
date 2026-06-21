@@ -2,7 +2,7 @@
   "id": "simple-mindmap",
   "title": "Simple MindMap",
   "description": "Простые MindMap диаграммы.",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "compatibility": {
     "minimum": "12",
     "verified": "14",
