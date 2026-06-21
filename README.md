@@ -8,96 +8,76 @@ The Simple MindMap module can be installed using the following Manifest URL:
 
 ![Пример работы модуля Simple Mindmap](Example.png)
 
-## 🚀 Как Запустить Редактор
+Simple MindMap is a lightweight yet powerful tool for creating mind maps, relationship charts, quest logs, and investigation boards right inside Foundry VTT. The module operates extremely fast, as all editing rights are strictly restricted to the Gamemaster (GM), and players only see what they are allowed to see, with no delays or desyncs.
 
-1.  Зайдите в **Настройки Модулей** (Manage Modules) и найдите **Simple MindMap**.
-2.  Нажмите кнопку **"Создать Макрос"** рядом с настройкой модуля.
-3.  На вашу панель макросов будет добавлен макрос с названием **Simple_MindMap**. Используйте его для быстрого запуска редактора в любой момент!
+Below is a complete list of the module's features.
 
-# 🧠 Simple MindMap
+🎛 Main Interface & Navigation
 
-**Простой инструмент для создания интерактивных ментальных карт (Mind Maps) прямо внутри Foundry VTT.**
+Floating Button: Access the module via a convenient floating button that can be dragged to any corner of the screen. If it ever gets lost off-screen, there's a "Reset floating button" checkbox in the module settings.
 
-Модуль позволяет вам визуально связывать Актеров, Журналы, Предметы и другие документы VTT, а также создавать ссылки на другие карты. Идеально подходит для планирования сюжета, визуализации связей NPC или отслеживания кампаний!
+Custom Map Center: You can set the perfect zoom and camera position for each map, then click the "Crosshairs" 🎯 button in the interface. Now, the view reset button will always return you to this saved angle.
 
-## ✨ Основные Функции
+Free Navigation:
 
----
+RMB + Drag: Pan the canvas.
 
-### ✍️ Интуитивный Редактор
+Mouse Wheel: Zoom in / out.
 
-* **Перетаскивание (Drag & Drop):** Перетаскивайте **любые документы Foundry VTT** (Акторы, Журналы, Предметы, Ролл-таблицы и т.д.) прямо на холст, чтобы создать новый узел карты.
-* **Интерактивные Узлы:**
-    * **Открытие Документа:** Щелкните правой кнопкой мыши на узел, чтобы мгновенно открыть связанный документ Foundry VTT.
-    * **Ссылки на Карты:** Создавайте специальные узлы, которые служат прямыми ссылками на другие карты в вашем модуле, позволяя строить многоуровневую структуру.
-* **Навигация:**
-    * **Панорамирование (Panning):** Перемещайтесь по холсту с помощью **правой кнопки мыши**.
-    * **Масштабирование (Zoom):** Используйте **колесико мыши** для увеличения или уменьшения масштаба.
+LMB on background: Lasso selection.
 
----
+Ctrl + Click: Multi-select several objects.
 
-### 🔗 Соединения (Связи)
+Delete: Remove all selected objects.
 
-* **Простое Создание Связей:** Нажмите **Shift** и перетащите линию от одного узла к другому, чтобы создать соединение.
-* **Стили Линий:** Выбирайте один из трех стилей для ваших связей, чтобы лучше передать их характер:
-    * **Curve** (Кривая Безье)
-    * **Straight** (Прямая)
-    * **Orthogonal** (Ломаная)
-* **Редактирование Связей:** **Двойной клик** по соединению позволяет изменить его текст и цвет.
+🗂 Map Elements (Nodes, Fields, and Text)
 
----
+Drag & Drop Integration: Simply drag any Actor, Item, Journal Entry, RollTable, or Scene from the Foundry sidebar directly onto the canvas. The module will automatically create a card with the portrait and name. Double-clicking the portrait will open the corresponding sheet/journal! (Note: dragging a token out of the card onto the scene works correctly and does not accidentally move the card itself).
 
-### 🖱️ Инструменты Выделения и Удаления
+Text Blocks: Just want to add a header? Create a text node. You can change its size, text color, background color, and even the font (Signika, Arial, Times New Roman, Modesto).
 
-* **Групповое Выделение:** Используйте **Лассо** (прямоугольник выделения), чтобы выбрать сразу несколько узлов для их перемещения.
-* **Удаление:** Нажмите клавишу **Delete**, чтобы удалить все выделенные узлы и связанные с ними соединения.
+Fields (Groups): Allow you to visually group elements together. You can customize the border color, fill opacity, and even set a background image (URL) that beautifully blends with the chosen color.
 
----
+Links to other maps: You can create portal-cards that transport you to another mind map on double-click. Perfect for multi-level investigations!
 
-**EN**
+🔗 Advanced Connections & Branches
 
-## 🚀 How to Launch the Editor
+Creating Connections: Hold Shift and click on a card, then click on another card to connect them.
 
-1. Go to **Manage Modules** and find **Simple MindMap**.
-2. Click the **"Create Macro"** button next to the module setting.
-3. A macro named **Simple_MindMap** will be added to your macro bar. Use it to quickly launch the editor at any time!
+Interactive Attachment Points: The endpoints where a connection attaches to a card are now interactive. They turn bold on hover. Pull the endpoint to:
 
-# 🧠 Simple MindMap
+Detach the connection and reconnect it to a different card.
 
-**A simple tool for creating interactive Mind Maps right inside Foundry VTT.**
+Delete the connection by simply dropping the endpoint in an empty space on the canvas.
 
-The module allows you to visually link Actors, Journals, Items, and other VTT documents, as well as create links to other maps. Perfect for plotting campaigns, visualizing NPC connections, or tracking quest lines!
+Branches (Forks): Hold Shift and click on the central block of an existing connection to pull a new line from it. Great for creating flowcharts where one event leads to three different outcomes!
 
-## ✨ Key Features
+Line Customization: You can change the style (Solid, Dashed, Dotted), shape (Curve, Straight, Orthogonal), and color. You can also toggle an arrow at the end.
 
----
+Bare Lines: If a connection (or branch) has no label and no notes, the central UI block is not rendered, leaving a beautiful bare line. To open its settings, simply double-click the line itself.
 
-### ✍️ Intuitive Editor
+Compact UI: For labeled connections, the control buttons (pin, visibility toggle) are hidden and only appear on hover to avoid cluttering the map.
 
-* **Drag & Drop:** Drag **any Foundry VTT documents** (Actors, Journals, Items, Roll Tables, etc.) directly onto the canvas to create a new map node.
-* **Interactive Nodes:**
-    * **Open Document:** Right-click on a node to instantly open the linked Foundry VTT document.
-    * **Map Links:** Create special nodes that serve as direct links to other maps in your module, allowing you to build a multi-level structure.
-* **Navigation:**
-    * **Panning:** Move around the canvas using the **right mouse button**.
-    * **Zooming:** Use the **mouse wheel** to zoom in or out.
+📝 Smart Notes System
 
----
+Now every card, text block, field, and even connection has a built-in notes system!
 
-### 🔗 Connections (Links)
+Smart Autosize: Cards automatically grow in height to accommodate all note items. You won't have to scroll through a tiny internal block. (An inner scrollbar will only appear if you manually shrink the card via the bottom-right corner).
 
-* **Easy Connection Creation:** Press **Shift** and drag a line from one node to another to create a connection.
-* **Line Styles:** Choose one of three styles for your connections to better convey their nature:
-    * **Curve** (Bezier Curve)
-    * **Straight** (Straight Line)
-    * **Orthogonal** (Right-Angle Line)
-* **Editing Connections:** **Double-click** on a connection to edit its text and color.
+Connection Notes: Labels under connections have received a beautiful visual container (border, background, and shadow), making the text readable over any intersecting lines.
 
----
+GM Secrets: When adding a note, the GM can check the "GM" box — this item will then only be visible to them.
 
-### 🖱️ Selection and Deletion Tools
+Authorship tracking: Below each note, it shows who left it (however, in the current architecture, only the GM can edit the map).
 
-* **Group Selection:** Use the **Lasso** (selection rectangle) to select multiple nodes at once for moving.
-* **Deletion:** Press the **Delete** key to remove all selected nodes and their associated connections.
+👁‍🗨 Visibility Control (Fog of War for mind maps)
 
+GM-Only Architecture: Players only see what you show them. Editing is completely disabled for players for perfect performance.
 
+Hiding Elements: Every element (card, connection, text, field) has an "Eye" icon. In one click, you can hide or show the element to players.
+
+Cascading Hiding: * If you hide a Field (Group), all cards and connections inside it are automatically hidden from players.
+
+If you hide a card — all connections leading to it also disappear for players.
+
+If you hide the entire map (via the top panel) — players will see a message that the map is temporarily hidden by the GM.
